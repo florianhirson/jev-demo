@@ -143,21 +143,33 @@ pilotant/piloté que `package-info.kt` documente. Écart assumé, gardé en
   `com.fasterxml.jackson.annotation` — ce module a gardé ses coordonnées
   dans le renommage Jackson 3 ; seuls `jackson-core`/`jackson-databind` sont
   passés sous `tools.jackson.*`).
-- `RedactSensitiveData` (domain service, `domain/triage/`) : rédige emails,
-  tokens/clés d'API et IPv4 avant tout envoi à jev. Le même texte rédigé
-  sert aussi de base à `Fingerprint` (value object, hash SHA-256), donc deux
-  erreurs qui ne diffèrent que par une donnée sensible partagent la même
-  empreinte.
-- `ClassificationCache` (port) + `InMemoryClassificationCache` : mémorise
-  une classification par `Fingerprint`, avec un test de contrat
-  (`ClassificationCacheContract`) réutilisable par un futur adaptateur.
-  `CachingLogClassifier` décore `LogClassifier` avec ce cache — le use case
-  et le reste du pipeline ignorent que la mise en cache existe.
+- `LogEvent.redactedMessage`/`redactedStackTrace` (`domain/triage/`) :
+  rédigent emails, tokens/clés d'API et IPv4 avant tout envoi à jev — implémentation
+  privée sur `LogEvent` lui-même, pas un domain service : la revue Grace a
+  relevé qu'une fonction `String -> String` ne coordonnant aucun objet du
+  domaine était le mauvais outil pour un comportement propre à `LogEvent`.
+  Le même texte rédigé sert aussi de base à `Fingerprint` (value object,
+  hash SHA-256), donc deux erreurs qui ne diffèrent que par une donnée
+  sensible partagent la même empreinte.
+- `ClassificationMemory` (port, `recall`/`remember`) + `InMemoryClassificationMemory` :
+  mémorise une classification par `Fingerprint`, avec un test de contrat
+  (`ClassificationMemoryContract`) réutilisable par un futur adaptateur.
+  Nommé `Memory` et non `Cache` (revue Grace : `Cache`/`get`/`put` nomment le
+  mécanisme de stockage, pas la capacité métier — « reconnaître une erreur
+  déjà classée »). `CachingLogClassifier` décore `LogClassifier` avec cette
+  mémoire — le use case et le reste du pipeline ignorent qu'elle existe.
 - Résilience : Resilience4j (`resilience4j-circuitbreaker`,
   `resilience4j-retry`, cœur pur, sans dépendance à une version de Spring
-  Boot). Retry avec backoff exponentiel sur 429/529 uniquement ; 401/422 ne
-  sont jamais retentés. `CircuitBreaker` englobe `Retry` (une opération
-  retentée compte pour un seul résultat vis-à-vis du disjoncteur).
+  Boot). Retry avec backoff exponentiel sur 429/529/erreurs réseau
+  (`JevNetworkError`, ex. connexion refusée, DNS) ; 401/422 ne sont jamais
+  retentés. `CircuitBreaker` englobe `Retry` (une opération retentée compte
+  pour un seul résultat vis-à-vis du disjoncteur). Le prédicat de retry
+  (`JevApiException.isTransient()`) est une fonction unique partagée entre
+  le câblage réel et les tests, pour qu'ils ne puissent pas diverger en
+  silence. Latence pire cas non bornée globalement (pas de `TimeLimiter`
+  agrégé au-delà des timeouts par appel) — assumé pour une démo : un
+  `classify` lent n'immobilise qu'un des quatre consommateurs virtual-thread,
+  pas l'ingestion entière.
 
 ### Roadmap (6 incréments)
 
