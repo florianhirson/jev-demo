@@ -106,6 +106,20 @@ ne désigne, pour chaque tâche de code, que les talents listés ci-dessus
 comme "installés" — les autres restent inertes tant qu'aucun code ne les
 concerne réellement.
 
+### Écart Grace assumé : adaptateurs pilotants hors de `infrastructure/`
+
+`ingestion/` (appender Logback, file bornée, consommateur virtual-thread)
+regroupe des adaptateurs **pilotants** (ils déclenchent l'appel au use case)
+et non **pilotés** (ils n'implémentent aucun port du domaine). La règle
+`grace.architecture.port-adapter:adapter-lives-in-infrastructure-and-implements-port`
+(warning) les considère en violation dès qu'ils sont hors de `infrastructure/`
+OU qu'ils n'implémentent aucun port — une condition qu'un adaptateur pilotant
+ne peut structurellement pas satisfaire, quel que soit son emplacement.
+Déplacer ce code dans `infrastructure/` ne lèverait donc pas la règle (il
+n'implémenterait toujours aucun port) et brouillerait la distinction
+pilotant/piloté que `package-info.kt` documente. Écart assumé, gardé en
+`warning` non corrigé plutôt que masqué.
+
 ### Conventions
 
 - Gradle **Kotlin DSL** (`build.gradle.kts`, `settings.gradle.kts`).
