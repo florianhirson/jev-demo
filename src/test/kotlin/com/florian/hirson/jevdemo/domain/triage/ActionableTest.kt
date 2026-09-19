@@ -2,7 +2,6 @@ package com.florian.hirson.jevdemo.domain.triage
 
 import kotlin.test.Test
 import kotlin.test.assertFailsWith
-import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class ActionableTest {
@@ -23,12 +22,7 @@ class ActionableTest {
     }
 
     @Test
-    fun `une probabilite au-dessus de la moitie est consideree probablement actionnable`() {
-        assertTrue(Actionable(0.9).isLikelyActionable)
-    }
-
-    @Test
-    fun `une probabilite en-dessous de la moitie n-est pas consideree probablement actionnable`() {
-        assertFalse(Actionable(0.1).isLikelyActionable)
+    fun `une probabilite plus elevee compare superieure a une probabilite plus faible`() {
+        assertTrue(Actionable(0.9) > Actionable(0.1))
     }
 }

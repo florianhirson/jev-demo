@@ -5,17 +5,18 @@ package com.florian.hirson.jevdemo.domain.triage
  * jev's `actionable` `noul` question directly: the graded probability is
  * kept rather than collapsed to a boolean, because the confidence-routing
  * policy (increment 4) needs the actual value, not a decision already taken
- * in the domain.
+ * in the domain — so this exposes ordering, not a threshold: any cutoff is a
+ * per-field policy choice for that increment to make, never one to hard-code
+ * here.
  */
-data class Actionable(val probability: Double) {
+data class Actionable(val probability: Double) : Comparable<Actionable> {
     init {
         if (!probability.isFinite() || probability < 0.0 || probability > 1.0) {
             throw InvalidActionableProbability(probability)
         }
     }
 
-    /** A convenience reading, not a routing decision: the policy in increment 4 uses [probability] directly. */
-    val isLikelyActionable: Boolean get() = probability > 0.5
+    override fun compareTo(other: Actionable): Int = probability.compareTo(other.probability)
 }
 
 /** An [Actionable] was rejected because a probability must be a finite number within 0.0..1.0. */
