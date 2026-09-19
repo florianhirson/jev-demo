@@ -75,6 +75,26 @@ class TriageLogAppenderTest {
     }
 
     @Test
+    fun `un log ERROR emis ailleurs dans l-application n-est pas ignore`() {
+        // Régression : le préfixe par défaut ne doit exclure que la machinerie
+        // de triage, pas com.florian.hirson.jevdemo tout entier — sinon aucune
+        // erreur applicative réelle (ni, plus tard, le simulateur de logs) ne
+        // serait jamais triée.
+        val queue = BoundedLogQueue(capacity = 4)
+        val appender = TriageLogAppender(queue)
+
+        appender.append(
+            loggingEvent(
+                loggerName = "com.florian.hirson.jevdemo.somefeature.SomeService",
+                level = Level.ERROR,
+                message = "something broke",
+            ),
+        )
+
+        assertEquals("something broke", queue.poll()?.message)
+    }
+
+    @Test
     fun `un log ERROR sans message ne fait pas echouer l-appender`() {
         val queue = BoundedLogQueue(capacity = 4)
         val appender = TriageLogAppender(queue)

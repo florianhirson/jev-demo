@@ -11,9 +11,11 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 
 /**
- * Composition root for the triage slice: the only place that wires a port
- * to a concrete adapter, or a domain/application object to a Spring bean
- * lifecycle. Domain and application code never reference this class.
+ * Composition root for the triage slice: the only place that associates the
+ * [LogClassifier] port with a concrete adapter. Domain and application code
+ * never reference this class. [com.florian.hirson.jevdemo.ingestion.TriageLogAppenderInstaller]
+ * separately attaches the appender bean built here to Logback's root
+ * logger — Logback owns its own context, so that step can't happen here.
  */
 @Configuration
 @EnableConfigurationProperties(TriageIngestionProperties::class)

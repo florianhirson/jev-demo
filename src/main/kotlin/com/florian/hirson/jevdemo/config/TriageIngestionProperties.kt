@@ -11,4 +11,9 @@ import org.springframework.boot.context.properties.ConfigurationProperties
 data class TriageIngestionProperties(
     val queueCapacity: Int = 1024,
     val consumerCount: Int = 4,
-)
+) {
+    init {
+        require(queueCapacity > 0) { "triage.ingestion.queue-capacity must be positive: $queueCapacity" }
+        require(consumerCount > 0) { "triage.ingestion.consumer-count must be positive: $consumerCount" }
+    }
+}

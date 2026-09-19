@@ -48,6 +48,33 @@ class TriageLogConsumerTest {
     }
 
     @Test
+    fun `le consommateur survit a une classification en echec et continue de traiter la file`() {
+        val queue = BoundedLogQueue(capacity = 4)
+        val latch = CountDownLatch(1)
+        val received = CopyOnWriteArrayList<LogEvent>()
+        val classifier = object : LogClassifier {
+            override fun classify(logEvent: LogEvent): Classification {
+                if (logEvent.message == "boom") throw RuntimeException("jev is down")
+                received.add(logEvent)
+                latch.countDown()
+                return Classification(Category.NOISE, Severity(0.0), Actionable(0.0))
+            }
+        }
+        val consumer = TriageLogConsumer(queue, ClassifyLogEventUseCase(classifier), consumerCount = 1)
+
+        consumer.start()
+        try {
+            queue.offer(logEvent("boom"))
+            queue.offer(logEvent("recovers after the failure"))
+
+            assertTrue(latch.await(2, TimeUnit.SECONDS), "le consommateur s'est arrêté après l'échec au lieu de continuer")
+            assertEquals(listOf("recovers after the failure"), received.map { it.message })
+        } finally {
+            consumer.stop()
+        }
+    }
+
+    @Test
     fun `plusieurs evenements sont tous classifies`() {
         val queue = BoundedLogQueue(capacity = 4)
         val latch = CountDownLatch(3)
