@@ -35,6 +35,13 @@ class BoundedLogQueueTest {
     }
 
     @Test
+    fun `poll ne bloque jamais et renvoie null si la file est vide`() {
+        val queue = BoundedLogQueue(capacity = 2)
+
+        assertEquals(null, queue.poll())
+    }
+
+    @Test
     fun `les evenements sont consommes dans l-ordre d-arrivee`() {
         val queue = BoundedLogQueue(capacity = 2)
         queue.offer(logEvent("first"))

@@ -27,4 +27,7 @@ class BoundedLogQueue(capacity: Int) {
 
     /** Blocks until an event is available; propagates interruption to the caller. */
     fun take(): LogEvent = queue.take()
+
+    /** Non-blocking: returns the next event, or `null` if none is available right now. */
+    fun poll(): LogEvent? = queue.poll()
 }
