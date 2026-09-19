@@ -1,8 +1,11 @@
 package com.florian.hirson.jevdemo.config
 
 import com.florian.hirson.jevdemo.application.triage.usecase.ClassifyLogEventUseCase
+import com.florian.hirson.jevdemo.domain.triage.ClassificationCache
 import com.florian.hirson.jevdemo.domain.triage.LogClassifier
-import com.florian.hirson.jevdemo.infrastructure.classification.PlaceholderLogClassifier
+import com.florian.hirson.jevdemo.infrastructure.cache.InMemoryClassificationCache
+import com.florian.hirson.jevdemo.infrastructure.classification.CachingLogClassifier
+import com.florian.hirson.jevdemo.infrastructure.classification.jev.JevLogClassifier
 import com.florian.hirson.jevdemo.ingestion.BoundedLogQueue
 import com.florian.hirson.jevdemo.ingestion.TriageLogAppender
 import com.florian.hirson.jevdemo.ingestion.TriageLogConsumer
@@ -12,8 +15,9 @@ import org.springframework.context.annotation.Configuration
 
 /**
  * Composition root for the triage slice: the only place that associates the
- * [LogClassifier] port with a concrete adapter. Domain and application code
- * never reference this class. [com.florian.hirson.jevdemo.ingestion.TriageLogAppenderInstaller]
+ * [LogClassifier] port with a concrete adapter — [JevLogClassifier] (built in
+ * [JevConfiguration]) decorated with a cache lookup. Domain and application
+ * code never reference this class. [com.florian.hirson.jevdemo.ingestion.TriageLogAppenderInstaller]
  * separately attaches the appender bean built here to Logback's root
  * logger — Logback owns its own context, so that step can't happen here.
  */
@@ -29,7 +33,11 @@ class TriageConfiguration {
     fun triageLogAppender(queue: BoundedLogQueue): TriageLogAppender = TriageLogAppender(queue)
 
     @Bean
-    fun logClassifier(): LogClassifier = PlaceholderLogClassifier()
+    fun classificationCache(): ClassificationCache = InMemoryClassificationCache()
+
+    @Bean
+    fun logClassifier(jevLogClassifier: JevLogClassifier, cache: ClassificationCache): LogClassifier =
+        CachingLogClassifier(jevLogClassifier, cache)
 
     @Bean
     fun classifyLogEventUseCase(logClassifier: LogClassifier): ClassifyLogEventUseCase =
