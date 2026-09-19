@@ -1,5 +1,8 @@
 package com.florian.hirson.jevdemo.ingestion
 
+import ch.qos.logback.classic.Logger
+import ch.qos.logback.classic.spi.ILoggingEvent
+import ch.qos.logback.core.read.ListAppender
 import com.florian.hirson.jevdemo.application.triage.usecase.ClassifyLogEventUseCase
 import com.florian.hirson.jevdemo.domain.triage.Actionable
 import com.florian.hirson.jevdemo.domain.triage.Category
@@ -7,12 +10,14 @@ import com.florian.hirson.jevdemo.domain.triage.Classification
 import com.florian.hirson.jevdemo.domain.triage.LogClassifier
 import com.florian.hirson.jevdemo.domain.triage.LogEvent
 import com.florian.hirson.jevdemo.domain.triage.Severity
+import org.slf4j.LoggerFactory
 import java.time.Instant
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class TriageLogConsumerTest {
@@ -72,6 +77,44 @@ class TriageLogConsumerTest {
         } finally {
             consumer.stop()
         }
+    }
+
+    @Test
+    fun `l-echec d-une classification est journalise sans le message brut`() {
+        // Régression : ce log ne doit jamais répéter en clair ce que la
+        // rédaction (LogEvent.redactedMessage) existe pour cacher à jev.
+        val appender = ListAppender<ILoggingEvent>()
+        appender.start()
+        val logger = LoggerFactory.getLogger(TriageLogConsumer::class.java) as Logger
+        logger.addAppender(appender)
+
+        val queue = BoundedLogQueue(capacity = 4)
+        val classifier = object : LogClassifier {
+            override fun classify(logEvent: LogEvent): Classification = throw RuntimeException("jev is down")
+        }
+        val consumer = TriageLogConsumer(queue, ClassifyLogEventUseCase(classifier), consumerCount = 1)
+
+        consumer.start()
+        try {
+            queue.offer(logEvent("Timeout calling 10.0.0.1 for user alice@acme.example"))
+
+            val loggedMessage = awaitFirstLogMessage(appender)
+            assertTrue(loggedMessage.contains("[IP]"))
+            assertTrue(loggedMessage.contains("[EMAIL]"))
+            assertFalse(loggedMessage.contains("10.0.0.1"))
+            assertFalse(loggedMessage.contains("alice@acme.example"))
+        } finally {
+            consumer.stop()
+            logger.detachAppender(appender)
+        }
+    }
+
+    private fun awaitFirstLogMessage(appender: ListAppender<ILoggingEvent>): String {
+        val deadline = System.currentTimeMillis() + 2000
+        while (appender.list.isEmpty() && System.currentTimeMillis() < deadline) {
+            Thread.sleep(10)
+        }
+        return appender.list.first().formattedMessage
     }
 
     @Test

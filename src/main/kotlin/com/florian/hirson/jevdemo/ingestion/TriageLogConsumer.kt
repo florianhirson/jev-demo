@@ -56,7 +56,9 @@ class TriageLogConsumer(
             try {
                 classifyLogEvent.execute(logEvent)
             } catch (exception: Exception) {
-                logger.error("Failed to classify log event: {}", logEvent.message, exception)
+                // redactedMessage, not message: this log line must not repeat whatever
+                // sensitive data classification was already trying to keep out of jev.
+                logger.error("Failed to classify log event: {}", logEvent.redactedMessage, exception)
             }
         }
     }
