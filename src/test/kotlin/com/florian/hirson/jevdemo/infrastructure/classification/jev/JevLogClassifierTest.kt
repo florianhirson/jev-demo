@@ -8,6 +8,8 @@ import io.github.resilience4j.circuitbreaker.CircuitBreaker
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig
 import io.github.resilience4j.retry.Retry
 import io.github.resilience4j.retry.RetryConfig
+import org.springframework.web.client.ResourceAccessException
+import java.io.IOException
 import java.time.Duration
 import java.time.Instant
 import java.util.concurrent.CopyOnWriteArrayList
@@ -55,7 +57,7 @@ class JevLogClassifierTest {
             RetryConfig.custom<Any>()
                 .maxAttempts(maxAttempts)
                 .waitDuration(Duration.ofMillis(1))
-                .retryOnException { it is JevRateLimited || it is JevOverloaded }
+                .retryOnException { it is JevApiException && it.isTransient() }
                 .build(),
         )
         return JevLogClassifier(client, JevProperties(model = "jev-latest"), circuitBreaker, retry)
@@ -128,5 +130,40 @@ class JevLogClassifierTest {
 
         assertFailsWith<JevOverloaded> { classifier.classify(logEvent("boom")) }
         assertEquals(3, callCount)
+    }
+
+    @Test
+    fun `une erreur reseau est mappee vers JevNetworkError et retentee`() {
+        var callCount = 0
+        val client = object : SystemOneClient {
+            override fun classify(request: SystemOneRequest): SystemOneResponse {
+                callCount++
+                if (callCount < 2) throw ResourceAccessException("connection refused", IOException("boom"))
+                return response()
+            }
+        }
+        val classifier = newClassifier(client, maxAttempts = 3)
+
+        val classification = classifier.classify(logEvent("boom"))
+
+        assertEquals(2, callCount)
+        assertEquals(Category.EXTERNAL_DEPENDENCY, classification.category)
+    }
+
+    @Test
+    fun `une reponse jev incomplete est signalee comme JevUnavailable plutot que de fuiter une exception technique`() {
+        val incomplete = SystemOneResponse(
+            model = "jev-latest",
+            answers = mapOf(
+                "category" to Answer.Choice("external_dependency", 0.9, mapOf("external_dependency" to 0.9)),
+                // "severity" manquant
+                "actionable" to Answer.Noul(0.85),
+            ),
+            usage = Usage(100, 20),
+        )
+        val client = FakeSystemOneClient { incomplete }
+        val classifier = newClassifier(client)
+
+        assertFailsWith<JevUnavailable> { classifier.classify(logEvent("boom")) }
     }
 }

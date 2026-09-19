@@ -1,10 +1,10 @@
 package com.florian.hirson.jevdemo.config
 
+import com.florian.hirson.jevdemo.infrastructure.classification.jev.JevApiException
 import com.florian.hirson.jevdemo.infrastructure.classification.jev.JevLogClassifier
-import com.florian.hirson.jevdemo.infrastructure.classification.jev.JevOverloaded
 import com.florian.hirson.jevdemo.infrastructure.classification.jev.JevProperties
-import com.florian.hirson.jevdemo.infrastructure.classification.jev.JevRateLimited
 import com.florian.hirson.jevdemo.infrastructure.classification.jev.SystemOneClient
+import com.florian.hirson.jevdemo.infrastructure.classification.jev.isTransient
 import io.github.resilience4j.circuitbreaker.CircuitBreaker
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig
 import io.github.resilience4j.core.IntervalFunction
@@ -68,7 +68,7 @@ class JevConfiguration {
         val config = RetryConfig.custom<Any>()
             .maxAttempts(properties.maxAttempts)
             .intervalFunction(IntervalFunction.ofExponentialRandomBackoff())
-            .retryOnException { it is JevRateLimited || it is JevOverloaded }
+            .retryOnException { it is JevApiException && it.isTransient() }
             .build()
         return Retry.of("jev", config)
     }

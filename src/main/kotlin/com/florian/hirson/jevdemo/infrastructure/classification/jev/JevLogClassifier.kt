@@ -9,6 +9,7 @@ import com.florian.hirson.jevdemo.domain.triage.RedactSensitiveData
 import com.florian.hirson.jevdemo.domain.triage.Severity
 import io.github.resilience4j.circuitbreaker.CircuitBreaker
 import io.github.resilience4j.retry.Retry
+import org.springframework.web.client.RestClientException
 import org.springframework.web.client.RestClientResponseException
 
 /**
@@ -31,16 +32,27 @@ class JevLogClassifier(
 
     private fun callClient(request: SystemOneRequest): SystemOneResponse = try {
         client.classify(request)
-    } catch (exception: RestClientResponseException) {
+    } catch (exception: RestClientException) {
         throw mapException(exception)
     }
 
-    private fun mapException(exception: RestClientResponseException): JevApiException = when (exception.statusCode.value()) {
-        401 -> JevUnauthorized(exception)
-        422 -> JevInvalidRequest(exception)
-        429 -> JevRateLimited(exception)
-        529 -> JevOverloaded(exception)
-        else -> JevUnavailable(exception)
+    /**
+     * [RestClientResponseException] carries an HTTP status to map by code.
+     * Any other [RestClientException] — a timeout, a refused connection, a
+     * DNS failure — never reached a response at all: jev's documented
+     * retry guidance treats network failures as transient too, same as
+     * 429/529, so this becomes [JevNetworkError] rather than the catch-all
+     * [JevUnavailable].
+     */
+    private fun mapException(exception: RestClientException): JevApiException {
+        if (exception !is RestClientResponseException) return JevNetworkError(exception)
+        return when (exception.statusCode.value()) {
+            401 -> JevUnauthorized(exception)
+            422 -> JevInvalidRequest(exception)
+            429 -> JevRateLimited(exception)
+            529 -> JevOverloaded(exception)
+            else -> JevUnavailable(exception)
+        }
     }
 
     private fun buildRequest(logEvent: LogEvent): SystemOneRequest {
@@ -83,11 +95,24 @@ class JevLogClassifier(
         )
     }
 
-    private fun toClassification(response: SystemOneResponse): Classification {
+    /**
+     * A malformed shape (a missing key, an answer of the wrong type) becomes
+     * [JevUnavailable] rather than a raw [ClassCastException]/[NoSuchElementException] —
+     * both are technical failures the consumer already handles generically,
+     * but naming it keeps the failure mode documented at the type it's
+     * thrown from. A domain-error rejection (an out-of-range [Severity]/
+     * [Actionable] value) is left to propagate as itself: it's already a
+     * named, typed failure, not one this adapter should relabel.
+     */
+    private fun toClassification(response: SystemOneResponse): Classification = try {
         val category = (response.answers.getValue("category") as Answer.Choice).let { toCategory(it.choice) }
         val severity = (response.answers.getValue("severity") as Answer.Score).let { Severity(it.score) }
         val actionable = (response.answers.getValue("actionable") as Answer.Noul).let { Actionable(it.noul) }
-        return Classification(category, severity, actionable)
+        Classification(category, severity, actionable)
+    } catch (exception: ClassCastException) {
+        throw JevUnavailable(exception)
+    } catch (exception: NoSuchElementException) {
+        throw JevUnavailable(exception)
     }
 
     private fun toCategory(choice: String): Category = when (choice) {
