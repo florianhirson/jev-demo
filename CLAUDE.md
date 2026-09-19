@@ -125,19 +125,48 @@ pilotant/piloté que `package-info.kt` documente. Écart assumé, gardé en
 - Gradle **Kotlin DSL** (`build.gradle.kts`, `settings.gradle.kts`).
 - Java 21 minimum (toolchain actuel : 25).
 - **Conventional Commits** ; petits commits fréquents.
-- Tests qui appellent le vrai jev : opt-in uniquement (tag dédié), jamais
-  dans le build par défaut.
+- Tests qui appellent le vrai jev : tag JUnit `"live"`, exclu du build par
+  défaut (`build.gradle.kts`) ; à lancer avec
+  `JEV_API_KEY=... ./gradlew test -DincludeTags=live`.
 - Secrets : `JEV_API_KEY` en variable d'environnement, jamais committée ;
-  voir `.env.example`.
+  voir `.env.example`. Jamais porté par une classe dont le `toString()`
+  généré pourrait fuiter dans un log (`JevProperties` l'exclut
+  explicitement ; la clé ne transite que par `@Value` local dans
+  `JevConfiguration`, jamais stockée sur un champ plus large).
+
+### Adaptateur jev (incrément 3)
+
+- `JevLogClassifier` (`infrastructure/classification/jev/`) : implémente
+  `LogClassifier` via `SystemOneClient`, une interface `@HttpExchange`
+  déclarative. DTO `Question`/`Answer` en interfaces scellées Kotlin,
+  discriminées par `type` (Jackson `@JsonTypeInfo`/`@JsonSubTypes` de
+  `com.fasterxml.jackson.annotation` — ce module a gardé ses coordonnées
+  dans le renommage Jackson 3 ; seuls `jackson-core`/`jackson-databind` sont
+  passés sous `tools.jackson.*`).
+- `RedactSensitiveData` (domain service, `domain/triage/`) : rédige emails,
+  tokens/clés d'API et IPv4 avant tout envoi à jev. Le même texte rédigé
+  sert aussi de base à `Fingerprint` (value object, hash SHA-256), donc deux
+  erreurs qui ne diffèrent que par une donnée sensible partagent la même
+  empreinte.
+- `ClassificationCache` (port) + `InMemoryClassificationCache` : mémorise
+  une classification par `Fingerprint`, avec un test de contrat
+  (`ClassificationCacheContract`) réutilisable par un futur adaptateur.
+  `CachingLogClassifier` décore `LogClassifier` avec ce cache — le use case
+  et le reste du pipeline ignorent que la mise en cache existe.
+- Résilience : Resilience4j (`resilience4j-circuitbreaker`,
+  `resilience4j-retry`, cœur pur, sans dépendance à une version de Spring
+  Boot). Retry avec backoff exponentiel sur 429/529 uniquement ; 401/422 ne
+  sont jamais retentés. `CircuitBreaker` englobe `Retry` (une opération
+  retentée compte pour un seul résultat vis-à-vis du disjoncteur).
 
 ### Roadmap (6 incréments)
 
-1. Squelette, domaine, port `LogClassifier` + test d'acceptation avec faux
-   classifieur.
-2. Ingestion : appender Logback → file bornée (abandon + compteur) →
+1. ✅ Squelette, domaine, port `LogClassifier` + test d'acceptation avec
+   faux classifieur.
+2. ✅ Ingestion : appender Logback → file bornée (abandon + compteur) →
    consommation virtual threads.
-3. Adaptateur jev réel (`@HttpExchange`, DTO sealed interfaces) + masquage
-   PII + empreinte/cache.
+3. ✅ Adaptateur jev réel (`@HttpExchange`, DTO sealed interfaces) +
+   masquage PII + empreinte/cache.
 4. Politique de routage par seuil de confiance (par champ) + `ReviewQueue`
    en mémoire + endpoint REST.
 5. Observabilité : port métriques + adaptateur Micrometer/Prometheus,
