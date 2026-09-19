@@ -1,6 +1,8 @@
 package com.florian.hirson.jevdemo.ingestion
 
 import com.florian.hirson.jevdemo.application.triage.usecase.ClassifyLogEventUseCase
+import jakarta.annotation.PostConstruct
+import jakarta.annotation.PreDestroy
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
@@ -20,6 +22,7 @@ class TriageLogConsumer(
     private val running = AtomicBoolean(false)
     private var executor: ExecutorService? = null
 
+    @PostConstruct
     fun start() {
         running.set(true)
         val pool = Executors.newFixedThreadPool(consumerCount, Thread.ofVirtual().factory())
@@ -27,6 +30,7 @@ class TriageLogConsumer(
         repeat(consumerCount) { pool.execute(::consumeUntilStopped) }
     }
 
+    @PreDestroy
     fun stop() {
         running.set(false)
         executor?.shutdownNow()
