@@ -13,9 +13,10 @@ data class LogEvent(
     val occurredAt: Instant,
 ) {
     init {
-        if (message.isBlank()) throw BlankLogMessage
+        if (message.isBlank()) throw BlankLogMessage(message)
     }
 }
 
 /** A [LogEvent] was rejected because its message carries no information to triage on. */
-data object BlankLogMessage : IllegalArgumentException("A log event message must not be blank")
+class BlankLogMessage(message: String) :
+    IllegalArgumentException("A log event message must not be blank: '$message'")

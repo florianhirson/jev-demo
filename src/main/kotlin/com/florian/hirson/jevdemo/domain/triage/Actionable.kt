@@ -9,10 +9,15 @@ package com.florian.hirson.jevdemo.domain.triage
  */
 data class Actionable(val probability: Double) {
     init {
-        if (probability < 0.0 || probability > 1.0) throw ActionableProbabilityOutOfRange(probability)
+        if (!probability.isFinite() || probability < 0.0 || probability > 1.0) {
+            throw InvalidActionableProbability(probability)
+        }
     }
+
+    /** A convenience reading, not a routing decision: the policy in increment 4 uses [probability] directly. */
+    val isLikelyActionable: Boolean get() = probability > 0.5
 }
 
-/** An [Actionable] was rejected because a probability must lie within 0.0..1.0. */
-class ActionableProbabilityOutOfRange(probability: Double) :
-    IllegalArgumentException("Actionable probability must be within 0.0..1.0: $probability")
+/** An [Actionable] was rejected because a probability must be a finite number within 0.0..1.0. */
+class InvalidActionableProbability(probability: Double) :
+    IllegalArgumentException("Actionable probability must be a finite number within 0.0..1.0: $probability")
