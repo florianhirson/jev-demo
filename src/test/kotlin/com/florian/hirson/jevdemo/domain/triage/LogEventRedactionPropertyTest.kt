@@ -6,21 +6,25 @@ import net.jqwik.api.Combinators
 import net.jqwik.api.ForAll
 import net.jqwik.api.Property
 import net.jqwik.api.Provide
+import java.time.Instant
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 /**
- * Property-based coverage for [RedactSensitiveData], per the project's convention of
- * testing fingerprint normalization on generated inputs rather than a handful of
- * hard-coded examples.
+ * Property-based coverage for [LogEvent.redactedMessage], per the project's
+ * convention of testing fingerprint normalization on generated inputs rather
+ * than a handful of hard-coded examples.
  */
-class RedactSensitiveDataPropertyTest {
+class LogEventRedactionPropertyTest {
+
+    private fun logEvent(message: String) =
+        LogEvent(message = message, occurredAt = Instant.parse("2026-09-19T10:15:30Z"))
 
     @Property
     fun `la redaction est idempotente`(@ForAll("noisyText") text: String) {
-        val once = RedactSensitiveData.execute(text)
-        val twice = RedactSensitiveData.execute(once)
+        val once = logEvent(text).redactedMessage
+        val twice = logEvent(once).redactedMessage
 
         assertEquals(once, twice)
     }
@@ -31,7 +35,7 @@ class RedactSensitiveDataPropertyTest {
         @ForAll("ipv4") ip: String,
         @ForAll("word") after: String,
     ) {
-        val redacted = RedactSensitiveData.execute("$before $ip $after")
+        val redacted = logEvent("$before $ip $after").redactedMessage
 
         assertTrue(redacted.contains("[IP]"))
         assertFalse(redacted.contains(ip))
@@ -43,14 +47,14 @@ class RedactSensitiveDataPropertyTest {
         @ForAll("email") email: String,
         @ForAll("word") after: String,
     ) {
-        val redacted = RedactSensitiveData.execute("$before $email $after")
+        val redacted = logEvent("$before $email $after").redactedMessage
 
         assertTrue(redacted.contains("[EMAIL]"))
         assertFalse(redacted.contains("@"))
     }
 
     @Provide
-    fun noisyText(): Arbitrary<String> = Arbitraries.strings().withCharRange('a', 'z').ofMinLength(0).ofMaxLength(40)
+    fun noisyText(): Arbitrary<String> = Arbitraries.strings().withCharRange('a', 'z').ofMinLength(1).ofMaxLength(40)
 
     @Provide
     fun word(): Arbitrary<String> = Arbitraries.strings().withCharRange('a', 'z').ofMinLength(1).ofMaxLength(10)

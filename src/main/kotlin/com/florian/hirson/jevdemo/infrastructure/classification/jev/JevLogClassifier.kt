@@ -5,7 +5,6 @@ import com.florian.hirson.jevdemo.domain.triage.Category
 import com.florian.hirson.jevdemo.domain.triage.Classification
 import com.florian.hirson.jevdemo.domain.triage.LogClassifier
 import com.florian.hirson.jevdemo.domain.triage.LogEvent
-import com.florian.hirson.jevdemo.domain.triage.RedactSensitiveData
 import com.florian.hirson.jevdemo.domain.triage.Severity
 import io.github.resilience4j.circuitbreaker.CircuitBreaker
 import io.github.resilience4j.retry.Retry
@@ -56,11 +55,8 @@ class JevLogClassifier(
     }
 
     private fun buildRequest(logEvent: LogEvent): SystemOneRequest {
-        val redactedMessage = RedactSensitiveData.execute(logEvent.message)
-        val redactedStackTrace = logEvent.stackTrace
-            ?.let(RedactSensitiveData::execute)
-            ?.take(MAX_STACK_TRACE_LENGTH)
-        val state = listOfNotNull(redactedMessage, redactedStackTrace).joinToString("\n\n")
+        val redactedStackTrace = logEvent.redactedStackTrace?.take(MAX_STACK_TRACE_LENGTH)
+        val state = listOfNotNull(logEvent.redactedMessage, redactedStackTrace).joinToString("\n\n")
 
         return SystemOneRequest(
             state = state,
