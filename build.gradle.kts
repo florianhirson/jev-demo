@@ -28,6 +28,8 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-webmvc")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("tools.jackson.module:jackson-module-kotlin")
+    implementation("io.github.resilience4j:resilience4j-circuitbreaker:2.4.0")
+    implementation("io.github.resilience4j:resilience4j-retry:2.4.0")
     runtimeOnly("io.micrometer:micrometer-registry-prometheus")
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
 
@@ -37,6 +39,7 @@ dependencies {
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testImplementation("org.jetbrains.kotlin:kotlin-test")
+    testImplementation("net.jqwik:jqwik:1.10.1")
 }
 
 kotlin {
@@ -46,5 +49,12 @@ kotlin {
 }
 
 tasks.named<Test>("test") {
-    useJUnitPlatform()
+    // "live" tags a test that calls the real jev API: opt-in only, never in the default build.
+    // Run explicitly with: ./gradlew test -DincludeTags=live
+    useJUnitPlatform {
+        val includeTags = System.getProperty("includeTags")
+        if (includeTags != "live") {
+            excludeTags("live")
+        }
+    }
 }
