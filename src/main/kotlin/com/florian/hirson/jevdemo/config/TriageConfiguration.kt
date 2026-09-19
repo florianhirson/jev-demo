@@ -1,9 +1,9 @@
 package com.florian.hirson.jevdemo.config
 
 import com.florian.hirson.jevdemo.application.triage.usecase.ClassifyLogEventUseCase
-import com.florian.hirson.jevdemo.domain.triage.ClassificationCache
+import com.florian.hirson.jevdemo.domain.triage.ClassificationMemory
 import com.florian.hirson.jevdemo.domain.triage.LogClassifier
-import com.florian.hirson.jevdemo.infrastructure.cache.InMemoryClassificationCache
+import com.florian.hirson.jevdemo.infrastructure.cache.InMemoryClassificationMemory
 import com.florian.hirson.jevdemo.infrastructure.classification.CachingLogClassifier
 import com.florian.hirson.jevdemo.infrastructure.classification.jev.JevLogClassifier
 import com.florian.hirson.jevdemo.ingestion.BoundedLogQueue
@@ -33,11 +33,11 @@ class TriageConfiguration {
     fun triageLogAppender(queue: BoundedLogQueue): TriageLogAppender = TriageLogAppender(queue)
 
     @Bean
-    fun classificationCache(): ClassificationCache = InMemoryClassificationCache()
+    fun classificationMemory(): ClassificationMemory = InMemoryClassificationMemory()
 
     @Bean
-    fun logClassifier(jevLogClassifier: JevLogClassifier, cache: ClassificationCache): LogClassifier =
-        CachingLogClassifier(jevLogClassifier, cache)
+    fun logClassifier(jevLogClassifier: JevLogClassifier, memory: ClassificationMemory): LogClassifier =
+        CachingLogClassifier(jevLogClassifier, memory)
 
     @Bean
     fun classifyLogEventUseCase(logClassifier: LogClassifier): ClassifyLogEventUseCase =

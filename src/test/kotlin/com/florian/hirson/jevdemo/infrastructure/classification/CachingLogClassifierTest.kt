@@ -6,7 +6,7 @@ import com.florian.hirson.jevdemo.domain.triage.Classification
 import com.florian.hirson.jevdemo.domain.triage.LogClassifier
 import com.florian.hirson.jevdemo.domain.triage.LogEvent
 import com.florian.hirson.jevdemo.domain.triage.Severity
-import com.florian.hirson.jevdemo.infrastructure.cache.InMemoryClassificationCache
+import com.florian.hirson.jevdemo.infrastructure.cache.InMemoryClassificationMemory
 import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -30,7 +30,7 @@ class CachingLogClassifierTest {
     fun `un cache miss appelle le delegate et memorise le resultat`() {
         val expected = Classification(Category.EXTERNAL_DEPENDENCY, Severity(0.8), Actionable(0.9))
         val delegate = CountingLogClassifier(expected)
-        val classifier = CachingLogClassifier(delegate, InMemoryClassificationCache())
+        val classifier = CachingLogClassifier(delegate, InMemoryClassificationMemory())
 
         val result = classifier.classify(logEvent("Connection refused calling payment-service"))
 
@@ -42,7 +42,7 @@ class CachingLogClassifierTest {
     fun `un cache hit n-appelle pas le delegate`() {
         val expected = Classification(Category.EXTERNAL_DEPENDENCY, Severity(0.8), Actionable(0.9))
         val delegate = CountingLogClassifier(expected)
-        val classifier = CachingLogClassifier(delegate, InMemoryClassificationCache())
+        val classifier = CachingLogClassifier(delegate, InMemoryClassificationMemory())
         classifier.classify(logEvent("Connection refused calling payment-service"))
 
         val result = classifier.classify(logEvent("Connection refused calling payment-service"))
@@ -55,7 +55,7 @@ class CachingLogClassifierTest {
     fun `deux messages differant seulement par une donnee sensible partagent le cache`() {
         val expected = Classification(Category.EXTERNAL_DEPENDENCY, Severity(0.8), Actionable(0.9))
         val delegate = CountingLogClassifier(expected)
-        val classifier = CachingLogClassifier(delegate, InMemoryClassificationCache())
+        val classifier = CachingLogClassifier(delegate, InMemoryClassificationMemory())
         classifier.classify(logEvent("Timeout calling 10.0.0.1 for user alice@acme.example"))
 
         val result = classifier.classify(logEvent("Timeout calling 10.0.0.2 for user bob@acme.example"))
