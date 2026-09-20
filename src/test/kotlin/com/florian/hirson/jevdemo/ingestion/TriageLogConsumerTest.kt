@@ -7,6 +7,7 @@ import com.florian.hirson.jevdemo.application.triage.usecase.ClassifyLogEventUse
 import com.florian.hirson.jevdemo.domain.triage.Actionable
 import com.florian.hirson.jevdemo.domain.triage.Category
 import com.florian.hirson.jevdemo.domain.triage.Classification
+import com.florian.hirson.jevdemo.domain.triage.Confidence
 import com.florian.hirson.jevdemo.domain.triage.LogClassifier
 import com.florian.hirson.jevdemo.domain.triage.LogEvent
 import com.florian.hirson.jevdemo.domain.triage.Severity
@@ -28,7 +29,13 @@ class TriageLogConsumerTest {
         override fun classify(logEvent: LogEvent): Classification {
             received.add(logEvent)
             latch.countDown()
-            return Classification(Category.NOISE, Severity(0.0), Actionable(0.0))
+            return Classification(
+                category = Category.NOISE,
+                categoryConfidence = Confidence(1.0),
+                severity = Severity(0.0),
+                severityConfidence = Confidence(1.0),
+                actionable = Actionable(0.0),
+            )
         }
     }
 
@@ -62,7 +69,13 @@ class TriageLogConsumerTest {
                 if (logEvent.message == "boom") throw RuntimeException("jev is down")
                 received.add(logEvent)
                 latch.countDown()
-                return Classification(Category.NOISE, Severity(0.0), Actionable(0.0))
+                return Classification(
+                    category = Category.NOISE,
+                    categoryConfidence = Confidence(1.0),
+                    severity = Severity(0.0),
+                    severityConfidence = Confidence(1.0),
+                    actionable = Actionable(0.0),
+                )
             }
         }
         val consumer = TriageLogConsumer(queue, ClassifyLogEventUseCase(classifier), consumerCount = 1)

@@ -3,6 +3,7 @@ package com.florian.hirson.jevdemo.infrastructure.classification.jev
 import com.florian.hirson.jevdemo.domain.triage.Actionable
 import com.florian.hirson.jevdemo.domain.triage.Category
 import com.florian.hirson.jevdemo.domain.triage.Classification
+import com.florian.hirson.jevdemo.domain.triage.Confidence
 import com.florian.hirson.jevdemo.domain.triage.LogClassifier
 import com.florian.hirson.jevdemo.domain.triage.LogEvent
 import com.florian.hirson.jevdemo.domain.triage.Severity
@@ -101,10 +102,16 @@ class JevLogClassifier(
      * named, typed failure, not one this adapter should relabel.
      */
     private fun toClassification(response: SystemOneResponse): Classification = try {
-        val category = (response.answers.getValue("category") as Answer.Choice).let { toCategory(it.choice) }
-        val severity = (response.answers.getValue("severity") as Answer.Score).let { Severity(it.score) }
-        val actionable = (response.answers.getValue("actionable") as Answer.Noul).let { Actionable(it.noul) }
-        Classification(category, severity, actionable)
+        val categoryAnswer = response.answers.getValue("category") as Answer.Choice
+        val severityAnswer = response.answers.getValue("severity") as Answer.Score
+        val actionableAnswer = response.answers.getValue("actionable") as Answer.Noul
+        Classification(
+            category = toCategory(categoryAnswer.choice),
+            categoryConfidence = Confidence(categoryAnswer.confidence),
+            severity = Severity(severityAnswer.score),
+            severityConfidence = Confidence(severityAnswer.confidence),
+            actionable = Actionable(actionableAnswer.noul),
+        )
     } catch (exception: ClassCastException) {
         throw JevUnavailable(exception)
     } catch (exception: NoSuchElementException) {

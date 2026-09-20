@@ -15,7 +15,7 @@ abstract class ClassificationMemoryContract {
     private val fingerprint = Fingerprint.of(
         LogEvent(message = "Connection refused calling payment-service", occurredAt = java.time.Instant.parse("2026-09-19T10:15:30Z")),
     )
-    private val classification = Classification(Category.EXTERNAL_DEPENDENCY, Severity(0.8), Actionable(0.9))
+    private val classification = Classification(Category.EXTERNAL_DEPENDENCY, Confidence(0.95), Severity(0.8), Confidence(0.9), Actionable(0.9))
 
     @Test
     fun `recall sur une empreinte inconnue renvoie null`() {
@@ -36,7 +36,7 @@ abstract class ClassificationMemoryContract {
     @Test
     fun `remember ecrase la valeur precedente pour la meme empreinte`() {
         val memory = newMemory()
-        val updated = Classification(Category.NOISE, Severity(0.1), Actionable(0.1))
+        val updated = Classification(Category.NOISE, Confidence(0.5), Severity(0.1), Confidence(0.5), Actionable(0.1))
 
         memory.remember(fingerprint, classification)
         memory.remember(fingerprint, updated)

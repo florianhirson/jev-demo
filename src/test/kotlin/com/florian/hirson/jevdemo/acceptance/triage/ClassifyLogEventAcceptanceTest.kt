@@ -5,6 +5,7 @@ import com.florian.hirson.jevdemo.application.triage.usecase.ClassifyLogEventUse
 import com.florian.hirson.jevdemo.domain.triage.Actionable
 import com.florian.hirson.jevdemo.domain.triage.Category
 import com.florian.hirson.jevdemo.domain.triage.Classification
+import com.florian.hirson.jevdemo.domain.triage.Confidence
 import com.florian.hirson.jevdemo.domain.triage.LogEvent
 import com.florian.hirson.jevdemo.domain.triage.Severity
 import java.time.Instant
@@ -28,7 +29,9 @@ class ClassifyLogEventAcceptanceTest {
         )
         val expected = Classification(
             category = Category.EXTERNAL_DEPENDENCY,
+            categoryConfidence = Confidence(0.95),
             severity = Severity(0.8),
+            severityConfidence = Confidence(0.85),
             actionable = Actionable(0.9),
         )
         val classifier = FakeLogClassifier(mapOf(logEvent to expected))

@@ -17,6 +17,14 @@ data class Actionable(val probability: Double) : Comparable<Actionable> {
     }
 
     override fun compareTo(other: Actionable): Int = probability.compareTo(other.probability)
+
+    /**
+     * jev's `noul` carries no separate confidence field: the probability's
+     * own distance from 0.5 is the certainty signal (0.5 = a coin flip, 0 or
+     * 1 = as sure as jev gets). Derived, not stored, so it can never drift
+     * out of sync with [probability].
+     */
+    val confidence: Confidence get() = Confidence(kotlin.math.abs(probability - 0.5) * 2)
 }
 
 /** An [Actionable] was rejected because a probability must be a finite number within 0.0..1.0. */
