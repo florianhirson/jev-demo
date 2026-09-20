@@ -82,7 +82,9 @@ metrics visually — not part of any deployment, just a demo convenience:
 cd deploy && docker compose up
 ```
 
-Then open Prometheus at `localhost:9090` and Grafana at `localhost:3000`
+Then open Prometheus at `localhost:9090` and Grafana at `localhost:3000` —
+the "jev-demo triage" dashboard (`triage_routed_total` by category/decision,
+`triage_failed_total`) is provisioned automatically, no login needed
 (anonymous viewer access, ports bound to loopback only — see
 `deploy/docker-compose.yml` for the reasoning).
 

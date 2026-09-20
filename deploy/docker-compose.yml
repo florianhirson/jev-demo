@@ -25,16 +25,24 @@ services:
     image: grafana/grafana:11.4.0
     ports:
       - "127.0.0.1:3000:3000"
+    volumes:
+      # Provisions the Prometheus datasource and the triage dashboard from
+      # files, read-only - nobody, anonymous or not, needs to manage a
+      # datasource at runtime, which is what actually removes the SSRF-shaped
+      # risk (an Admin repointing the datasource proxy at an arbitrary URL),
+      # not the Viewer/Admin role choice by itself.
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
     environment:
       # Anonymous *viewer* access, not admin: the stated purpose is only to
-      # explore the demo's Prometheus metrics, which Viewer already covers.
-      # Admin would let an unauthenticated visitor manage data sources -
-      # including pointing Grafana's data-source proxy at an arbitrary URL
-      # reachable from the container (this compose file already wires up
-      # host.docker.internal) - a small SSRF pivot, not a secrets question,
-      # so granting it wouldn't have been justified by "no real secret here"
-      # even before the loopback binding above.
+      # explore the demo's Prometheus metrics, which Viewer already covers
+      # once the datasource and dashboard above are provisioned rather than
+      # created by hand.
       GF_AUTH_ANONYMOUS_ENABLED: "true"
       GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      # Grafana ships with a default admin/admin login; loopback-only
+      # publishing (above) isn't enough to rely on alone since any local
+      # process or user reaches it too. Hiding the login form removes that
+      # path entirely for a stack whose only purpose is anonymous viewing.
+      GF_AUTH_DISABLE_LOGIN_FORM: "true"
     depends_on:
       - prometheus

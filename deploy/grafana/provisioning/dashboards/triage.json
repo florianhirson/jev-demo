@@ -1,0 +1,34 @@
+{
+  "title": "jev-demo triage",
+  "editable": false,
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "panels": [
+    {
+      "id": 1,
+      "title": "Triage routed, by category/decision",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum by (category, decision) (rate(triage_routed_total[5m]))",
+          "legendFormat": "{{category}} / {{decision}}"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Triage failed",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "expr": "rate(triage_failed_total[5m])",
+          "legendFormat": "failed"
+        }
+      ]
+    }
+  ]
+}
