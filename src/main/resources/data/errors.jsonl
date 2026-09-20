@@ -1,0 +1,24 @@
+{"message":"NullPointerException while resolving customer for order #48213","stackTrace":"java.lang.NullPointerException: Cannot invoke \"Customer.getEmail()\" because \"customer\" is null\n\tat com.acme.orders.OrderService.confirm(OrderService.java:42)","expectedCategory":"APPLICATION_BUG"}
+{"message":"IndexOutOfBoundsException: Index 5 out of bounds for length 3 in InvoiceLineItems","expectedCategory":"APPLICATION_BUG"}
+{"message":"ClassCastException: class PendingOrder cannot be cast to class CompletedOrder","expectedCategory":"APPLICATION_BUG"}
+{"message":"IllegalStateException: order 91827 is already shipped, cannot cancel","expectedCategory":"APPLICATION_BUG"}
+{"message":"ArithmeticException: / by zero while computing average basket value","stackTrace":"java.lang.ArithmeticException: / by zero\n\tat com.acme.orders.BasketStats.average(BasketStats.java:17)","expectedCategory":"APPLICATION_BUG"}
+{"message":"ConcurrentModificationException while iterating cart items during checkout","expectedCategory":"APPLICATION_BUG"}
+{"message":"Connection refused calling payment-service","stackTrace":"java.net.ConnectException: Connection refused\n\tat com.acme.payments.PaymentClient.charge(PaymentClient.java:88)","expectedCategory":"EXTERNAL_DEPENDENCY"}
+{"message":"Timeout waiting for response from shipping-provider API after 30000ms","expectedCategory":"EXTERNAL_DEPENDENCY"}
+{"message":"503 Service Unavailable returned by inventory-service","expectedCategory":"EXTERNAL_DEPENDENCY"}
+{"message":"Connection reset by peer while calling fraud-detection-service","stackTrace":"java.net.SocketException: Connection reset\n\tat com.acme.fraud.FraudClient.score(FraudClient.java:55)","expectedCategory":"EXTERNAL_DEPENDENCY"}
+{"message":"DNS resolution failed for notifications.internal","expectedCategory":"EXTERNAL_DEPENDENCY"}
+{"message":"Circuit breaker OPEN for warehouse-service, failing fast","expectedCategory":"EXTERNAL_DEPENDENCY"}
+{"message":"Unexpected token in config.yaml at line 12: expected mapping but found scalar","expectedCategory":"CONFIGURATION"}
+{"message":"Missing required environment variable DATABASE_URL","expectedCategory":"CONFIGURATION"}
+{"message":"Invalid value for feature.flag.checkout-v2: expected boolean, got 'maybe'","expectedCategory":"CONFIGURATION"}
+{"message":"Property triage.routing.category-threshold out of range: 1.5","stackTrace":"com.florian.hirson.jevdemo.domain.triage.InvalidConfidence: Confidence must be a finite number within 0.0..1.0: 1.5","expectedCategory":"CONFIGURATION"}
+{"message":"SSL certificate not found at path /etc/certs/app.pem","expectedCategory":"CONFIGURATION"}
+{"message":"Duplicate bean definition for name 'paymentGateway' in application context","expectedCategory":"CONFIGURATION"}
+{"message":"Health check probe failed once, recovered automatically on next attempt","expectedCategory":"NOISE"}
+{"message":"Scheduled cleanup job found nothing to purge","expectedCategory":"NOISE"}
+{"message":"Deprecated endpoint /v1/legacy/status called by internal monitor","expectedCategory":"NOISE"}
+{"message":"Retry succeeded after 1 attempt for cache warm-up","expectedCategory":"NOISE"}
+{"message":"Slow query logged for metrics: SELECT 1 (12ms)","expectedCategory":"NOISE"}
+{"message":"Client disconnected before response was sent, expected during rolling deploy","expectedCategory":"NOISE"}
