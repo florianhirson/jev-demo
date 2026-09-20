@@ -9,14 +9,14 @@ import java.util.concurrent.CopyOnWriteArrayList
 class RecordingTriageMetrics : TriageMetrics {
 
     val routed = CopyOnWriteArrayList<Pair<Classification, RoutingDecision>>()
-    var classificationFailures = 0
+    var triageFailures = 0
         private set
 
     override fun recordRouted(classification: Classification, decision: RoutingDecision) {
         routed.add(classification to decision)
     }
 
-    override fun recordClassificationFailed() {
-        classificationFailures++
+    override fun recordTriageFailed() {
+        triageFailures++
     }
 }

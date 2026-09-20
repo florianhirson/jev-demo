@@ -50,13 +50,13 @@ class MicrometerTriageMetricsTest {
     }
 
     @Test
-    fun `recordClassificationFailed incremente un compteur d-echec dedie`() {
+    fun `recordTriageFailed incremente un compteur d-echec dedie`() {
         val registry = SimpleMeterRegistry()
         val metrics = MicrometerTriageMetrics(registry)
 
-        metrics.recordClassificationFailed()
-        metrics.recordClassificationFailed()
+        metrics.recordTriageFailed()
+        metrics.recordTriageFailed()
 
-        assertEquals(2.0, registry.get("triage.classification.failed").counter().count())
+        assertEquals(2.0, registry.get("triage.failed").counter().count())
     }
 }

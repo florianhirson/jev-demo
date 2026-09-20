@@ -22,7 +22,7 @@ class MicrometerTriageMetrics(private val registry: MeterRegistry) : TriageMetri
         ).increment()
     }
 
-    override fun recordClassificationFailed() {
-        registry.counter("triage.classification.failed").increment()
+    override fun recordTriageFailed() {
+        registry.counter("triage.failed").increment()
     }
 }

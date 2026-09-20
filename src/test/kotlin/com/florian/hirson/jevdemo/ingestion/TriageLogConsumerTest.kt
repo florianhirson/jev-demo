@@ -45,15 +45,15 @@ class TriageLogConsumerTest {
     }
 
     private class RecordingTriageMetrics : TriageMetrics {
-        var classificationFailures = 0
+        var triageFailures = 0
             private set
 
         override fun recordRouted(classification: Classification, decision: RoutingDecision) {
             // not exercised by this test suite
         }
 
-        override fun recordClassificationFailed() {
-            classificationFailures++
+        override fun recordTriageFailed() {
+            triageFailures++
         }
     }
 
@@ -117,7 +117,7 @@ class TriageLogConsumerTest {
 
             assertTrue(latch.await(2, TimeUnit.SECONDS), "le consommateur s'est arrêté après l'échec au lieu de continuer")
             assertEquals(listOf("recovers after the failure"), received.map { it.message })
-            assertEquals(1, metrics.classificationFailures)
+            assertEquals(1, metrics.triageFailures)
         } finally {
             consumer.stop()
         }

@@ -58,7 +58,7 @@ class TriageLogConsumer(
             try {
                 triageLogEvent.execute(logEvent)
             } catch (exception: Exception) {
-                metrics.recordClassificationFailed()
+                metrics.recordTriageFailed()
                 // redactedMessage, not message: this log line must not repeat whatever
                 // sensitive data classification was already trying to keep out of jev.
                 logger.error("Failed to triage log event: {}", logEvent.redactedMessage, exception)
