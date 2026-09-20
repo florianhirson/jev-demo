@@ -1,0 +1,10 @@
+global:
+  scrape_interval: 5s
+
+scrape_configs:
+  - job_name: jev-demo
+    metrics_path: /actuator/prometheus
+    static_configs:
+      # The app runs on the host (./gradlew bootRun), not in this compose
+      # stack — host.docker.internal reaches it from inside the container.
+      - targets: ["host.docker.internal:8080"]
