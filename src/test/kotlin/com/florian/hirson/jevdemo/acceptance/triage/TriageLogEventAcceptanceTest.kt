@@ -1,6 +1,7 @@
 package com.florian.hirson.jevdemo.acceptance.triage
 
 import com.florian.hirson.jevdemo.acceptance.triage.fakes.FakeLogClassifier
+import com.florian.hirson.jevdemo.acceptance.triage.fakes.RecordingTriageMetrics
 import com.florian.hirson.jevdemo.application.triage.usecase.TriageLogEventUseCase
 import com.florian.hirson.jevdemo.domain.triage.Actionable
 import com.florian.hirson.jevdemo.domain.triage.Category
@@ -44,7 +45,7 @@ class TriageLogEventAcceptanceTest {
             actionable = Actionable(0.9),
         )
         val classifier = FakeLogClassifier(mapOf(logEvent to expected))
-        val triageLogEvent = TriageLogEventUseCase(classifier, InMemoryReviewQueue(), thresholds)
+        val triageLogEvent = TriageLogEventUseCase(classifier, InMemoryReviewQueue(), thresholds, RecordingTriageMetrics())
 
         // Act — le log est soumis au use case de triage
         val outcome = triageLogEvent.execute(logEvent)
@@ -69,7 +70,8 @@ class TriageLogEventAcceptanceTest {
         )
         val classifier = FakeLogClassifier(mapOf(logEvent to ambiguous))
         val reviewQueue = InMemoryReviewQueue()
-        val triageLogEvent = TriageLogEventUseCase(classifier, reviewQueue, thresholds)
+        val metrics = RecordingTriageMetrics()
+        val triageLogEvent = TriageLogEventUseCase(classifier, reviewQueue, thresholds, metrics)
 
         // Act
         val outcome = triageLogEvent.execute(logEvent)
@@ -77,6 +79,7 @@ class TriageLogEventAcceptanceTest {
         // Assert — le cas attend une décision humaine
         assertEquals(RoutingDecision.FOR_REVIEW, outcome.decision)
         assertEquals(listOf(ReviewCase(logEvent, ambiguous)), reviewQueue.pending())
+        assertEquals(listOf(ambiguous to RoutingDecision.FOR_REVIEW), metrics.routed)
     }
 
     @Test
@@ -94,11 +97,13 @@ class TriageLogEventAcceptanceTest {
         )
         val classifier = FakeLogClassifier(mapOf(logEvent to confident))
         val reviewQueue = InMemoryReviewQueue()
-        val triageLogEvent = TriageLogEventUseCase(classifier, reviewQueue, thresholds)
+        val metrics = RecordingTriageMetrics()
+        val triageLogEvent = TriageLogEventUseCase(classifier, reviewQueue, thresholds, metrics)
 
         val outcome = triageLogEvent.execute(logEvent)
 
         assertEquals(RoutingDecision.AUTOMATIC, outcome.decision)
         assertEquals(emptyList(), reviewQueue.pending())
+        assertEquals(listOf(confident to RoutingDecision.AUTOMATIC), metrics.routed)
     }
 }

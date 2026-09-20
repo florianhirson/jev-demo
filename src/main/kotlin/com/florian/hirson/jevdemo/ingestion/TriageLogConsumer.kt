@@ -1,6 +1,7 @@
 package com.florian.hirson.jevdemo.ingestion
 
 import com.florian.hirson.jevdemo.application.triage.usecase.TriageLogEventUseCase
+import com.florian.hirson.jevdemo.domain.triage.TriageMetrics
 import jakarta.annotation.PostConstruct
 import jakarta.annotation.PreDestroy
 import org.slf4j.LoggerFactory
@@ -24,6 +25,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 class TriageLogConsumer(
     private val queue: BoundedLogQueue,
     private val triageLogEvent: TriageLogEventUseCase,
+    private val metrics: TriageMetrics,
     private val consumerCount: Int,
 ) {
     private val logger = LoggerFactory.getLogger(TriageLogConsumer::class.java)
@@ -56,6 +58,7 @@ class TriageLogConsumer(
             try {
                 triageLogEvent.execute(logEvent)
             } catch (exception: Exception) {
+                metrics.recordClassificationFailed()
                 // redactedMessage, not message: this log line must not repeat whatever
                 // sensitive data classification was already trying to keep out of jev.
                 logger.error("Failed to triage log event: {}", logEvent.redactedMessage, exception)
