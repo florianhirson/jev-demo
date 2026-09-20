@@ -3,14 +3,17 @@ package com.florian.hirson.jevdemo.ingestion
 import ch.qos.logback.classic.Logger
 import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.core.read.ListAppender
-import com.florian.hirson.jevdemo.application.triage.usecase.ClassifyLogEventUseCase
+import com.florian.hirson.jevdemo.application.triage.usecase.TriageLogEventUseCase
 import com.florian.hirson.jevdemo.domain.triage.Actionable
 import com.florian.hirson.jevdemo.domain.triage.Category
 import com.florian.hirson.jevdemo.domain.triage.Classification
 import com.florian.hirson.jevdemo.domain.triage.Confidence
 import com.florian.hirson.jevdemo.domain.triage.LogClassifier
 import com.florian.hirson.jevdemo.domain.triage.LogEvent
+import com.florian.hirson.jevdemo.domain.triage.ReviewQueue
+import com.florian.hirson.jevdemo.domain.triage.RoutingThresholds
 import com.florian.hirson.jevdemo.domain.triage.Severity
+import com.florian.hirson.jevdemo.infrastructure.review.InMemoryReviewQueue
 import org.slf4j.LoggerFactory
 import java.time.Instant
 import java.util.concurrent.CopyOnWriteArrayList
@@ -42,12 +45,19 @@ class TriageLogConsumerTest {
     private fun logEvent(message: String) =
         LogEvent(message = message, occurredAt = Instant.parse("2026-09-19T10:15:30Z"))
 
+    private fun triageLogEventUseCase(classifier: LogClassifier, reviewQueue: ReviewQueue = InMemoryReviewQueue()) =
+        TriageLogEventUseCase(
+            classifier,
+            reviewQueue,
+            RoutingThresholds(category = Confidence(0.7), severity = Confidence(0.7), actionable = Confidence(0.7)),
+        )
+
     @Test
     fun `un evenement mis en file est classifie une fois le consommateur demarre`() {
         val queue = BoundedLogQueue(capacity = 4)
         val latch = CountDownLatch(1)
         val classifier = RecordingLogClassifier(latch)
-        val consumer = TriageLogConsumer(queue, ClassifyLogEventUseCase(classifier), consumerCount = 1)
+        val consumer = TriageLogConsumer(queue, triageLogEventUseCase(classifier), consumerCount = 1)
 
         queue.offer(logEvent("connection refused"))
         consumer.start()
@@ -78,7 +88,7 @@ class TriageLogConsumerTest {
                 )
             }
         }
-        val consumer = TriageLogConsumer(queue, ClassifyLogEventUseCase(classifier), consumerCount = 1)
+        val consumer = TriageLogConsumer(queue, triageLogEventUseCase(classifier), consumerCount = 1)
 
         consumer.start()
         try {
@@ -105,7 +115,7 @@ class TriageLogConsumerTest {
         val classifier = object : LogClassifier {
             override fun classify(logEvent: LogEvent): Classification = throw RuntimeException("jev is down")
         }
-        val consumer = TriageLogConsumer(queue, ClassifyLogEventUseCase(classifier), consumerCount = 1)
+        val consumer = TriageLogConsumer(queue, triageLogEventUseCase(classifier), consumerCount = 1)
 
         consumer.start()
         try {
@@ -135,7 +145,7 @@ class TriageLogConsumerTest {
         val queue = BoundedLogQueue(capacity = 4)
         val latch = CountDownLatch(3)
         val classifier = RecordingLogClassifier(latch)
-        val consumer = TriageLogConsumer(queue, ClassifyLogEventUseCase(classifier), consumerCount = 2)
+        val consumer = TriageLogConsumer(queue, triageLogEventUseCase(classifier), consumerCount = 2)
 
         consumer.start()
         try {

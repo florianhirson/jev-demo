@@ -1,6 +1,6 @@
 package com.florian.hirson.jevdemo.ingestion
 
-import com.florian.hirson.jevdemo.application.triage.usecase.ClassifyLogEventUseCase
+import com.florian.hirson.jevdemo.application.triage.usecase.TriageLogEventUseCase
 import jakarta.annotation.PostConstruct
 import jakarta.annotation.PreDestroy
 import org.slf4j.LoggerFactory
@@ -23,7 +23,7 @@ import java.util.concurrent.atomic.AtomicBoolean
  */
 class TriageLogConsumer(
     private val queue: BoundedLogQueue,
-    private val classifyLogEvent: ClassifyLogEventUseCase,
+    private val classifyLogEvent: TriageLogEventUseCase,
     private val consumerCount: Int,
 ) {
     private val logger = LoggerFactory.getLogger(TriageLogConsumer::class.java)
