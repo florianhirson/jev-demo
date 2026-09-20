@@ -46,3 +46,7 @@ out/
 
 ### jqwik ###
 .jqwik-database
+
+### Claude ###
+.claude
+CLAUDE.md
