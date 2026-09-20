@@ -20,9 +20,9 @@ data class Classification(
      * ambiguous classification.
      */
     fun route(thresholds: RoutingThresholds): RoutingDecision =
-        if (categoryConfidence >= thresholds.category &&
-            severityConfidence >= thresholds.severity &&
-            actionable.confidence >= thresholds.actionable
+        if (categoryConfidence >= thresholds.categoryConfidence &&
+            severityConfidence >= thresholds.severityConfidence &&
+            actionable.confidence >= thresholds.actionableConfidence
         ) {
             RoutingDecision.AUTOMATIC
         } else {

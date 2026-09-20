@@ -49,7 +49,7 @@ class TriageLogConsumerTest {
         TriageLogEventUseCase(
             classifier,
             reviewQueue,
-            RoutingThresholds(category = Confidence(0.7), severity = Confidence(0.7), actionable = Confidence(0.7)),
+            RoutingThresholds(categoryConfidence = Confidence(0.7), severityConfidence = Confidence(0.7), actionableConfidence = Confidence(0.7)),
         )
 
     @Test

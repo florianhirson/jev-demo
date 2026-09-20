@@ -7,7 +7,7 @@ package com.florian.hirson.jevdemo.domain.triage
  * a threshold calibrated on one answer type doesn't transfer to another.
  */
 data class RoutingThresholds(
-    val category: Confidence,
-    val severity: Confidence,
-    val actionable: Confidence,
+    val categoryConfidence: Confidence,
+    val severityConfidence: Confidence,
+    val actionableConfidence: Confidence,
 )

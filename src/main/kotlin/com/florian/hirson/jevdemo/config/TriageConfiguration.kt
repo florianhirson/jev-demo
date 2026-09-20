@@ -49,9 +49,9 @@ class TriageConfiguration {
 
     @Bean
     fun routingThresholds(properties: TriageRoutingProperties): RoutingThresholds = RoutingThresholds(
-        category = Confidence(properties.categoryThreshold),
-        severity = Confidence(properties.severityThreshold),
-        actionable = Confidence(properties.actionableThreshold),
+        categoryConfidence = Confidence(properties.categoryThreshold),
+        severityConfidence = Confidence(properties.severityThreshold),
+        actionableConfidence = Confidence(properties.actionableThreshold),
     )
 
     @Bean

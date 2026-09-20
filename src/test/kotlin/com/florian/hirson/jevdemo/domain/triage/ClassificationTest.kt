@@ -6,9 +6,9 @@ import kotlin.test.assertEquals
 class ClassificationTest {
 
     private val thresholds = RoutingThresholds(
-        category = Confidence(0.7),
-        severity = Confidence(0.7),
-        actionable = Confidence(0.7),
+        categoryConfidence = Confidence(0.7),
+        severityConfidence = Confidence(0.7),
+        actionableConfidence = Confidence(0.7),
     )
 
     private fun classification(categoryConfidence: Double, severityConfidence: Double, actionableProbability: Double) =
