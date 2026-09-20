@@ -3,9 +3,9 @@ package com.florian.hirson.jevdemo.tooling
 import ch.qos.logback.classic.Logger
 import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.core.read.ListAppender
+import com.florian.hirson.jevdemo.acceptance.evaluation.fakes.FakeEvaluationDataset
 import com.florian.hirson.jevdemo.acceptance.triage.fakes.FakeLogClassifier
-import com.florian.hirson.jevdemo.application.evaluation.EvaluateClassificationAccuracyUseCase
-import com.florian.hirson.jevdemo.domain.evaluation.ErrorsDataset
+import com.florian.hirson.jevdemo.application.evaluation.usecase.EvaluateClassificationAccuracyUseCase
 import com.florian.hirson.jevdemo.domain.evaluation.LabeledLogEvent
 import com.florian.hirson.jevdemo.domain.triage.Actionable
 import com.florian.hirson.jevdemo.domain.triage.Category
@@ -20,17 +20,13 @@ import kotlin.test.assertTrue
 
 class EvaluationReportRunnerTest {
 
-    private class FixedErrorsDataset(private val entries: List<LabeledLogEvent>) : ErrorsDataset {
-        override fun load(): List<LabeledLogEvent> = entries
-    }
-
     @Test
     fun `le rapport d-evaluation est journalise avec ses tranches de confiance`() {
         val logEvent = LogEvent(
             message = "Connection refused calling payment-service",
             occurredAt = Instant.parse("2026-09-20T10:00:00Z"),
         )
-        val dataset = FixedErrorsDataset(listOf(LabeledLogEvent(logEvent, Category.EXTERNAL_DEPENDENCY)))
+        val dataset = FakeEvaluationDataset(listOf(LabeledLogEvent(logEvent, Category.EXTERNAL_DEPENDENCY)))
         val classification = Classification(
             category = Category.EXTERNAL_DEPENDENCY,
             categoryConfidence = Confidence(0.95),

@@ -1,6 +1,6 @@
 package com.florian.hirson.jevdemo.infrastructure.dataset
 
-import com.florian.hirson.jevdemo.domain.evaluation.ErrorsDataset
+import com.florian.hirson.jevdemo.domain.evaluation.EvaluationDataset
 import com.florian.hirson.jevdemo.domain.evaluation.LabeledLogEvent
 import com.florian.hirson.jevdemo.domain.triage.Category
 import com.florian.hirson.jevdemo.domain.triage.LogEvent
@@ -9,18 +9,18 @@ import tools.jackson.databind.ObjectMapper
 import java.time.Instant
 
 /**
- * [ErrorsDataset] adapter reading a JSON-Lines file — one [ErrorsDatasetEntryDto]
+ * [EvaluationDataset] adapter reading a JSON-Lines file — one [ErrorsDatasetEntryDto]
  * per line — from [resource]. Blank lines are skipped, so the file can carry
  * blank separators between groups of examples. [LogEvent.occurredAt] is
  * stamped at load time: the dataset itself carries no timestamp, only
  * representative error content.
  */
-class JsonLinesErrorsDataset(
+class JsonLinesEvaluationDataset(
     private val objectMapper: ObjectMapper,
     private val resource: Resource,
-) : ErrorsDataset {
+) : EvaluationDataset {
 
-    override fun load(): List<LabeledLogEvent> =
+    override fun labeledLogEvents(): List<LabeledLogEvent> =
         resource.inputStream.bufferedReader().useLines { lines ->
             lines
                 .map { it.trim() }

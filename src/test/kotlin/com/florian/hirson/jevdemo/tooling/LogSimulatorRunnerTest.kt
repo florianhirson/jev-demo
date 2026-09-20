@@ -3,8 +3,7 @@ package com.florian.hirson.jevdemo.tooling
 import ch.qos.logback.classic.Logger
 import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.core.read.ListAppender
-import com.florian.hirson.jevdemo.config.SimulatorProperties
-import com.florian.hirson.jevdemo.domain.evaluation.ErrorsDataset
+import com.florian.hirson.jevdemo.acceptance.evaluation.fakes.FakeEvaluationDataset
 import com.florian.hirson.jevdemo.domain.evaluation.LabeledLogEvent
 import com.florian.hirson.jevdemo.domain.triage.Category
 import com.florian.hirson.jevdemo.domain.triage.LogEvent
@@ -17,16 +16,12 @@ import kotlin.test.assertNull
 
 class LogSimulatorRunnerTest {
 
-    private class FixedErrorsDataset(private val entries: List<LabeledLogEvent>) : ErrorsDataset {
-        override fun load(): List<LabeledLogEvent> = entries
-    }
-
     private fun logEvent(message: String, stackTrace: String? = null) =
         LogEvent(message = message, stackTrace = stackTrace, occurredAt = Instant.parse("2026-09-20T10:00:00Z"))
 
     @Test
     fun `chaque evenement du jeu de donnees est rejoue comme un log ERROR`() {
-        val dataset = FixedErrorsDataset(
+        val dataset = FakeEvaluationDataset(
             listOf(
                 LabeledLogEvent(logEvent("Connection refused calling payment-service"), Category.EXTERNAL_DEPENDENCY),
                 LabeledLogEvent(
@@ -41,7 +36,7 @@ class LogSimulatorRunnerTest {
         logbackLogger.addAppender(appender)
 
         try {
-            LogSimulatorRunner(dataset, SimulatorProperties(enabled = true, delayMs = 0)).run()
+            LogSimulatorRunner(dataset, delayMs = 0).run()
         } finally {
             logbackLogger.detachAppender(appender)
         }

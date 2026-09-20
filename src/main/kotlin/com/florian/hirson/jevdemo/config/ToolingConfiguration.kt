@@ -1,9 +1,9 @@
 package com.florian.hirson.jevdemo.config
 
-import com.florian.hirson.jevdemo.application.evaluation.EvaluateClassificationAccuracyUseCase
-import com.florian.hirson.jevdemo.domain.evaluation.ErrorsDataset
+import com.florian.hirson.jevdemo.application.evaluation.usecase.EvaluateClassificationAccuracyUseCase
+import com.florian.hirson.jevdemo.domain.evaluation.EvaluationDataset
 import com.florian.hirson.jevdemo.domain.triage.LogClassifier
-import com.florian.hirson.jevdemo.infrastructure.dataset.JsonLinesErrorsDataset
+import com.florian.hirson.jevdemo.infrastructure.dataset.JsonLinesEvaluationDataset
 import com.florian.hirson.jevdemo.tooling.EvaluationReportRunner
 import com.florian.hirson.jevdemo.tooling.LogSimulatorRunner
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
@@ -26,18 +26,18 @@ import tools.jackson.databind.ObjectMapper
 class ToolingConfiguration {
 
     @Bean
-    fun errorsDataset(objectMapper: ObjectMapper): ErrorsDataset =
-        JsonLinesErrorsDataset(objectMapper, ClassPathResource("data/errors.jsonl"))
+    fun evaluationDataset(objectMapper: ObjectMapper): EvaluationDataset =
+        JsonLinesEvaluationDataset(objectMapper, ClassPathResource("data/errors.jsonl"))
 
     @Bean
     @ConditionalOnProperty(prefix = "simulator", name = ["enabled"], havingValue = "true")
-    fun logSimulatorRunner(dataset: ErrorsDataset, properties: SimulatorProperties): LogSimulatorRunner =
-        LogSimulatorRunner(dataset, properties)
+    fun logSimulatorRunner(dataset: EvaluationDataset, properties: SimulatorProperties): LogSimulatorRunner =
+        LogSimulatorRunner(dataset, properties.delayMs)
 
     @Bean
     @ConditionalOnProperty(prefix = "evaluation", name = ["enabled"], havingValue = "true")
     fun evaluateClassificationAccuracyUseCase(
-        dataset: ErrorsDataset,
+        dataset: EvaluationDataset,
         classifier: LogClassifier,
     ): EvaluateClassificationAccuracyUseCase = EvaluateClassificationAccuracyUseCase(dataset, classifier)
 

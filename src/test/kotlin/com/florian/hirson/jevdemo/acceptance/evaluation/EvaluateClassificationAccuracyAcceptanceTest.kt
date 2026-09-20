@@ -1,8 +1,8 @@
 package com.florian.hirson.jevdemo.acceptance.evaluation
 
-import com.florian.hirson.jevdemo.acceptance.evaluation.fakes.FakeErrorsDataset
+import com.florian.hirson.jevdemo.acceptance.evaluation.fakes.FakeEvaluationDataset
 import com.florian.hirson.jevdemo.acceptance.triage.fakes.FakeLogClassifier
-import com.florian.hirson.jevdemo.application.evaluation.EvaluateClassificationAccuracyUseCase
+import com.florian.hirson.jevdemo.application.evaluation.usecase.EvaluateClassificationAccuracyUseCase
 import com.florian.hirson.jevdemo.domain.evaluation.ConfidenceTier
 import com.florian.hirson.jevdemo.domain.evaluation.LabeledLogEvent
 import com.florian.hirson.jevdemo.domain.evaluation.TierAccuracy
@@ -36,7 +36,7 @@ class EvaluateClassificationAccuracyAcceptanceTest {
         val wrongVeryHigh = logEvent("NullPointerException in OrderService")
         val correctLow = logEvent("Unexpected token in config.yaml")
 
-        val dataset = FakeErrorsDataset(
+        val dataset = FakeEvaluationDataset(
             listOf(
                 LabeledLogEvent(correctVeryHigh, expectedCategory = Category.EXTERNAL_DEPENDENCY),
                 LabeledLogEvent(wrongVeryHigh, expectedCategory = Category.APPLICATION_BUG),

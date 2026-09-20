@@ -8,20 +8,24 @@ package com.florian.hirson.jevdemo.domain.evaluation
 data class EvaluationReport(val tierAccuracies: List<TierAccuracy>) {
     init {
         val tiers = tierAccuracies.map { it.tier }
-        require(tiers.size == ConfidenceTier.entries.size && tiers.toSet() == ConfidenceTier.entries.toSet()) {
-            "tierAccuracies must cover every ConfidenceTier exactly once: $tiers"
+        if (tiers.size != ConfidenceTier.entries.size || tiers.toSet() != ConfidenceTier.entries.toSet()) {
+            throw IncompleteEvaluationReport(tiers)
         }
     }
 
     companion object {
-        /** Groups one (tier, wasCorrect) pair per classified event into a [TierAccuracy] per [ConfidenceTier]. */
-        fun of(results: List<Pair<ConfidenceTier, Boolean>>): EvaluationReport {
-            val outcomesByTier = results.groupBy({ it.first }, { it.second })
+        /** Groups one [TierOutcome] per classified event into a [TierAccuracy] per [ConfidenceTier]. */
+        fun of(outcomes: List<TierOutcome>): EvaluationReport {
+            val outcomesByTier = outcomes.groupBy { it.tier }
             val tierAccuracies = ConfidenceTier.entries.map { tier ->
-                val outcomes = outcomesByTier[tier].orEmpty()
-                TierAccuracy(tier, correct = outcomes.count { it }, total = outcomes.size)
+                val forTier = outcomesByTier[tier].orEmpty()
+                TierAccuracy(tier, correct = forTier.count { it.correct }, total = forTier.size)
             }
             return EvaluationReport(tierAccuracies)
         }
     }
 }
+
+/** An [EvaluationReport] was rejected because [EvaluationReport.tierAccuracies] must cover every [ConfidenceTier] exactly once. */
+class IncompleteEvaluationReport(tiers: List<ConfidenceTier>) :
+    IllegalArgumentException("tierAccuracies must cover every ConfidenceTier exactly once: $tiers")

@@ -17,13 +17,13 @@ import kotlin.test.assertTrue
  * not application logic.
  */
 @SpringBootTest
-class JsonLinesErrorsDatasetTest {
+class JsonLinesEvaluationDatasetTest {
 
     @Autowired
     lateinit var objectMapper: ObjectMapper
 
     private fun datasetOf(jsonl: String) =
-        JsonLinesErrorsDataset(objectMapper, ByteArrayResource(jsonl.trimIndent().toByteArray()))
+        JsonLinesEvaluationDataset(objectMapper, ByteArrayResource(jsonl.trimIndent().toByteArray()))
 
     @Test
     fun `chaque ligne JSON devient un evenement etiquete`() {
@@ -32,7 +32,7 @@ class JsonLinesErrorsDatasetTest {
             {"message":"NullPointerException at OrderService.java:42","stackTrace":"java.lang.NullPointerException","expectedCategory":"APPLICATION_BUG"}
         """
 
-        val labeled = datasetOf(jsonl).load()
+        val labeled = datasetOf(jsonl).labeledLogEvents()
 
         assertEquals(2, labeled.size)
         assertEquals("Connection refused calling payment-service", labeled[0].logEvent.message)
@@ -50,12 +50,12 @@ class JsonLinesErrorsDatasetTest {
             {"message":"b","expectedCategory":"NOISE"}
         """
 
-        assertEquals(2, datasetOf(jsonl).load().size)
+        assertEquals(2, datasetOf(jsonl).labeledLogEvents().size)
     }
 
     @Test
     fun `le jeu de donnees livre en main se charge et couvre les quatre categories`() {
-        val labeled = JsonLinesErrorsDataset(objectMapper, ClassPathResource("data/errors.jsonl")).load()
+        val labeled = JsonLinesEvaluationDataset(objectMapper, ClassPathResource("data/errors.jsonl")).labeledLogEvents()
 
         assertTrue(labeled.isNotEmpty())
         assertEquals(Category.entries.toSet(), labeled.map { it.expectedCategory }.toSet())

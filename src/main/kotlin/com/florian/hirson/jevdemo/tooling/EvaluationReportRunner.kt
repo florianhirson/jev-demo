@@ -1,6 +1,6 @@
 package com.florian.hirson.jevdemo.tooling
 
-import com.florian.hirson.jevdemo.application.evaluation.EvaluateClassificationAccuracyUseCase
+import com.florian.hirson.jevdemo.application.evaluation.usecase.EvaluateClassificationAccuracyUseCase
 import com.florian.hirson.jevdemo.domain.evaluation.EvaluationReport
 import com.florian.hirson.jevdemo.domain.evaluation.TierAccuracy
 import org.slf4j.LoggerFactory
@@ -25,6 +25,8 @@ class EvaluationReportRunner(private val evaluateAccuracy: EvaluateClassificatio
     private fun formatted(report: EvaluationReport): String =
         report.tierAccuracies.joinToString(prefix = "Confidence-tier evaluation report:\n", separator = "\n", postfix = "\n") { line(it) }
 
-    private fun line(tierAccuracy: TierAccuracy): String =
-        "  %-10s n=%-3d accuracy=%.1f%%".format(tierAccuracy.tier, tierAccuracy.total, tierAccuracy.accuracy * 100)
+    private fun line(tierAccuracy: TierAccuracy): String {
+        val accuracyText = tierAccuracy.accuracy?.let { "%.1f%%".format(it * 100) } ?: "n/a"
+        return "  %-10s n=%-3d accuracy=%s".format(tierAccuracy.tier, tierAccuracy.total, accuracyText)
+    }
 }

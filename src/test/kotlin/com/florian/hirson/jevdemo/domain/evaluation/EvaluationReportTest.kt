@@ -10,10 +10,10 @@ class EvaluationReportTest {
     fun `of regroupe les resultats par tranche et compte les reussites`() {
         val report = EvaluationReport.of(
             listOf(
-                ConfidenceTier.VERY_HIGH to true,
-                ConfidenceTier.VERY_HIGH to true,
-                ConfidenceTier.VERY_HIGH to false,
-                ConfidenceTier.LOW to false,
+                TierOutcome(ConfidenceTier.VERY_HIGH, correct = true),
+                TierOutcome(ConfidenceTier.VERY_HIGH, correct = true),
+                TierOutcome(ConfidenceTier.VERY_HIGH, correct = false),
+                TierOutcome(ConfidenceTier.LOW, correct = false),
             ),
         )
 
@@ -37,14 +37,14 @@ class EvaluationReportTest {
 
     @Test
     fun `une tranche manquante est rejetee a la construction`() {
-        assertFailsWith<IllegalArgumentException> {
+        assertFailsWith<IncompleteEvaluationReport> {
             EvaluationReport(listOf(TierAccuracy(ConfidenceTier.LOW, correct = 0, total = 0)))
         }
     }
 
     @Test
     fun `une tranche dupliquee est rejetee a la construction`() {
-        assertFailsWith<IllegalArgumentException> {
+        assertFailsWith<IncompleteEvaluationReport> {
             EvaluationReport(
                 listOf(
                     TierAccuracy(ConfidenceTier.LOW, correct = 0, total = 0),
