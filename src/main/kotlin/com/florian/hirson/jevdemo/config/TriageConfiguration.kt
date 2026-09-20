@@ -7,13 +7,16 @@ import com.florian.hirson.jevdemo.domain.triage.Confidence
 import com.florian.hirson.jevdemo.domain.triage.LogClassifier
 import com.florian.hirson.jevdemo.domain.triage.ReviewQueue
 import com.florian.hirson.jevdemo.domain.triage.RoutingThresholds
+import com.florian.hirson.jevdemo.domain.triage.TriageMetrics
 import com.florian.hirson.jevdemo.infrastructure.cache.InMemoryClassificationMemory
 import com.florian.hirson.jevdemo.infrastructure.classification.CachingLogClassifier
 import com.florian.hirson.jevdemo.infrastructure.classification.jev.JevLogClassifier
+import com.florian.hirson.jevdemo.infrastructure.observability.MicrometerTriageMetrics
 import com.florian.hirson.jevdemo.infrastructure.review.InMemoryReviewQueue
 import com.florian.hirson.jevdemo.ingestion.BoundedLogQueue
 import com.florian.hirson.jevdemo.ingestion.TriageLogAppender
 import com.florian.hirson.jevdemo.ingestion.TriageLogConsumer
+import io.micrometer.core.instrument.MeterRegistry
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -48,6 +51,9 @@ class TriageConfiguration {
     fun reviewQueue(): ReviewQueue = InMemoryReviewQueue()
 
     @Bean
+    fun triageMetrics(registry: MeterRegistry): TriageMetrics = MicrometerTriageMetrics(registry)
+
+    @Bean
     fun routingThresholds(properties: TriageRoutingProperties): RoutingThresholds = RoutingThresholds(
         categoryConfidence = Confidence(properties.categoryThreshold),
         severityConfidence = Confidence(properties.severityThreshold),
@@ -59,7 +65,8 @@ class TriageConfiguration {
         logClassifier: LogClassifier,
         reviewQueue: ReviewQueue,
         thresholds: RoutingThresholds,
-    ): TriageLogEventUseCase = TriageLogEventUseCase(logClassifier, reviewQueue, thresholds)
+        metrics: TriageMetrics,
+    ): TriageLogEventUseCase = TriageLogEventUseCase(logClassifier, reviewQueue, thresholds, metrics)
 
     @Bean
     fun listPendingReviewsUseCase(reviewQueue: ReviewQueue): ListPendingReviewsUseCase =
@@ -69,6 +76,7 @@ class TriageConfiguration {
     fun triageLogConsumer(
         queue: BoundedLogQueue,
         classifyLogEvent: TriageLogEventUseCase,
+        metrics: TriageMetrics,
         properties: TriageIngestionProperties,
-    ): TriageLogConsumer = TriageLogConsumer(queue, classifyLogEvent, properties.consumerCount)
+    ): TriageLogConsumer = TriageLogConsumer(queue, classifyLogEvent, metrics, properties.consumerCount)
 }
