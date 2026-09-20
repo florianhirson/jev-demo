@@ -65,9 +65,12 @@ Glossaire ubiquitaire (`domain/triage/`) :
 | `Category` | Famille de la cause : bug applicatif, dépendance externe, configuration, bruit (`choice` jev). |
 | `Severity` | Position sur un spectre de gravité (`score` jev). |
 | `Actionable` | Probabilité brute qu'un développeur doive agir (`noul` jev). |
-| `Classification` | `category` + `severity` + `actionable` : résultat du triage d'un `LogEvent`. |
+| `Classification` | `category`/`severity`/`actionable` + leur `Confidence` par champ : résultat du triage d'un `LogEvent`. |
+| `Confidence` | Certitude de jev sur un champ `choice`/`score` (0.0–1.0) ; pour `actionable`, dérivée de la distance à 0.5. |
 | `LogClassifier` | Port : capacité de classifier un `LogEvent`. |
-| `ClassifyLogEventUseCase` | Use case qui orchestre le port pour produire une `Classification`. |
+| `TriageLogEventUseCase` | Use case qui orchestre le port pour produire une `Classification`, puis la route selon `RoutingThresholds`. |
+| `RoutingThresholds`/`RoutingDecision` | Seuil de `Confidence` par champ ; décision `AUTOMATIC`/`FOR_REVIEW` qui en résulte. |
+| `ReviewCase`/`ReviewQueue` | Un `LogEvent` + sa `Classification` routée `FOR_REVIEW` ; port qui les retient pour une décision humaine. |
 
 ### Talents Grace actifs sur ce projet
 
@@ -171,6 +174,32 @@ pilotant/piloté que `package-info.kt` documente. Écart assumé, gardé en
   `classify` lent n'immobilise qu'un des quatre consommateurs virtual-thread,
   pas l'ingestion entière.
 
+### Politique de routage par confiance (incrément 4)
+
+- `Confidence` (value object, `domain/triage/`) : borne 0.0–1.0. Portée par
+  `categoryConfidence`/`severityConfidence` sur `Classification` (les
+  réponses `choice`/`score` de jev exposent leur propre `confidence`).
+  `actionable` (`noul`) n'a pas de champ `confidence` séparé : `Actionable.confidence`
+  la dérive de la distance à 0.5 (0.5 = pile ou face, 0/1 = jev certain).
+- `RoutingThresholds` (une `Confidence` par champ) + `Classification.route()` :
+  `AUTOMATIC` seulement si les trois champs passent leur propre seuil,
+  sinon `FOR_REVIEW` — jamais un seuil global unique, les échelles de
+  confiance `choice`/`score`/`noul` ne sont pas comparables (jaggedness
+  jev-1.13). Seuils par défaut 0.7 partout (`TriageRoutingProperties`,
+  `triage.routing.*`), provisoires jusqu'à la calibration de l'incrément 6.
+- `ReviewQueue` (port, `enqueue`/`pending`) + `InMemoryReviewQueue` : retient
+  les `ReviewCase` routés `FOR_REVIEW`, avec un test de contrat
+  (`ReviewQueueContract`), même schéma que `ClassificationMemory`
+  (incrément 3).
+- `TriageLogEventUseCase` (renommage de `ClassifyLogEventUseCase`) : classifie
+  puis route et enqueue si nécessaire — le nom suit maintenant ce que le use
+  case fait réellement, pas seulement la classification.
+- `GET /api/reviews` (`ReviewController`, `api/`) expose les `ReviewCase` en
+  attente. Réponse construite sur `LogEvent.redactedMessage`, jamais
+  `message` : l'endpoint n'a aucune authentification devant lui (pas de
+  Spring Security dans ce projet), donc la même contrainte PII que le
+  logging (incrément 3) s'applique ici.
+
 ### Roadmap (6 incréments)
 
 1. ✅ Squelette, domaine, port `LogClassifier` + test d'acceptation avec
@@ -179,7 +208,7 @@ pilotant/piloté que `package-info.kt` documente. Écart assumé, gardé en
    consommation virtual threads.
 3. ✅ Adaptateur jev réel (`@HttpExchange`, DTO sealed interfaces) +
    masquage PII + empreinte/cache.
-4. Politique de routage par seuil de confiance (par champ) + `ReviewQueue`
+4. ✅ Politique de routage par seuil de confiance (par champ) + `ReviewQueue`
    en mémoire + endpoint REST.
 5. Observabilité : port métriques + adaptateur Micrometer/Prometheus,
    exposition Actuator.
