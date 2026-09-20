@@ -6,27 +6,35 @@
 #
 #   cd deploy && docker compose up
 #   open http://localhost:9090        # Prometheus
-#   open http://localhost:3000        # Grafana (anonymous admin, see below)
+#   open http://localhost:3000        # Grafana (anonymous viewer, see below)
+#
+# Ports are bound to loopback only (127.0.0.1) - this stack has no auth of
+# its own, so it must not be reachable from the LAN even though it's "just a
+# demo".
 services:
   prometheus:
     image: prom/prometheus:v3.0.1
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
     ports:
-      - "9090:9090"
+      - "127.0.0.1:9090:9090"
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
   grafana:
     image: grafana/grafana:11.4.0
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     environment:
-      # Anonymous admin access: this stack is optional, local-only tooling
-      # for exploring the demo's Prometheus metrics and is never deployed
-      # anywhere — there is no real secret to manage here (see CLAUDE.md's
-      # devops.secret-management notes on increment 6).
+      # Anonymous *viewer* access, not admin: the stated purpose is only to
+      # explore the demo's Prometheus metrics, which Viewer already covers.
+      # Admin would let an unauthenticated visitor manage data sources -
+      # including pointing Grafana's data-source proxy at an arbitrary URL
+      # reachable from the container (this compose file already wires up
+      # host.docker.internal) - a small SSRF pivot, not a secrets question,
+      # so granting it wouldn't have been justified by "no real secret here"
+      # even before the loopback binding above.
       GF_AUTH_ANONYMOUS_ENABLED: "true"
-      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
     depends_on:
       - prometheus

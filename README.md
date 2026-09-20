@@ -20,7 +20,7 @@ Prometheus metric.
 
 ```bash
 cp .env.example .env   # fill in JEV_API_KEY
-export $(cat .env | xargs)
+set -a; source .env; set +a
 ./gradlew bootRun
 ```
 
@@ -83,8 +83,8 @@ cd deploy && docker compose up
 ```
 
 Then open Prometheus at `localhost:9090` and Grafana at `localhost:3000`
-(anonymous admin — see `deploy/docker-compose.yml` for why that's fine for a
-local-only stack).
+(anonymous viewer access, ports bound to loopback only — see
+`deploy/docker-compose.yml` for the reasoning).
 
 ## Architecture
 
