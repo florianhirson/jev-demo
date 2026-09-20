@@ -29,23 +29,23 @@ abstract class ReviewQueueContract {
     }
 
     @Test
-    fun `enqueue rend le cas visible dans pending`() {
+    fun `submit rend le cas visible dans pending`() {
         val queue = newQueue()
         val reviewCase = reviewCase("Connection refused calling payment-service")
 
-        queue.enqueue(reviewCase)
+        queue.submit(reviewCase)
 
         assertEquals(listOf(reviewCase), queue.pending())
     }
 
     @Test
-    fun `plusieurs enqueue s-accumulent dans l-ordre`() {
+    fun `plusieurs submit s-accumulent dans l-ordre`() {
         val queue = newQueue()
         val first = reviewCase("first")
         val second = reviewCase("second")
 
-        queue.enqueue(first)
-        queue.enqueue(second)
+        queue.submit(first)
+        queue.submit(second)
 
         assertEquals(listOf(first, second), queue.pending())
     }

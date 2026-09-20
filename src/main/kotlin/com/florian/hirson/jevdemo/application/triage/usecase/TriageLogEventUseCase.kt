@@ -12,8 +12,10 @@ import com.florian.hirson.jevdemo.domain.triage.RoutingThresholds
  * Orchestrates the [LogClassifier] port to triage a single [LogEvent], then
  * routes the result by confidence (see [Classification.route]): a
  * [RoutingDecision.FOR_REVIEW] classification is handed to [reviewQueue]
- * rather than acted on automatically. The insertion point for whatever acts
- * on an [RoutingDecision.AUTOMATIC] classification in a later increment.
+ * rather than acted on automatically. The [TriageOutcome] returned carries
+ * that routing decision, not just the classification, so a caller can tell
+ * which happened. The insertion point for whatever acts on an
+ * [RoutingDecision.AUTOMATIC] classification in a later increment.
  */
 class TriageLogEventUseCase(
     private val classifier: LogClassifier,
@@ -21,11 +23,12 @@ class TriageLogEventUseCase(
     private val thresholds: RoutingThresholds,
 ) {
 
-    fun execute(logEvent: LogEvent): Classification {
+    fun execute(logEvent: LogEvent): TriageOutcome {
         val classification = classifier.classify(logEvent)
-        if (classification.route(thresholds) == RoutingDecision.FOR_REVIEW) {
-            reviewQueue.enqueue(ReviewCase(logEvent, classification))
+        val decision = classification.route(thresholds)
+        if (decision == RoutingDecision.FOR_REVIEW) {
+            reviewQueue.submit(ReviewCase(logEvent, classification))
         }
-        return classification
+        return TriageOutcome(classification, decision)
     }
 }

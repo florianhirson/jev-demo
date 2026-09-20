@@ -69,8 +69,10 @@ Glossaire ubiquitaire (`domain/triage/`) :
 | `Confidence` | Certitude de jev sur un champ `choice`/`score` (0.0–1.0) ; pour `actionable`, dérivée de la distance à 0.5. |
 | `LogClassifier` | Port : capacité de classifier un `LogEvent`. |
 | `TriageLogEventUseCase` | Use case qui orchestre le port pour produire une `Classification`, puis la route selon `RoutingThresholds`. |
+| `TriageOutcome` | Résultat du use case : `classification` + `decision`, pour que l'appelant sache laquelle des deux a eu lieu. |
 | `RoutingThresholds`/`RoutingDecision` | Seuil de `Confidence` par champ ; décision `AUTOMATIC`/`FOR_REVIEW` qui en résulte. |
 | `ReviewCase`/`ReviewQueue` | Un `LogEvent` + sa `Classification` routée `FOR_REVIEW` ; port qui les retient pour une décision humaine. |
+| `ListPendingReviewsUseCase` | Use case de lecture : renvoie les `ReviewCase` en attente via `ReviewQueue`. |
 
 ### Talents Grace actifs sur ce projet
 
@@ -111,9 +113,10 @@ concerne réellement.
 
 ### Écart Grace assumé : adaptateurs pilotants hors de `infrastructure/`
 
-`ingestion/` (appender Logback, file bornée, consommateur virtual-thread)
-regroupe des adaptateurs **pilotants** (ils déclenchent l'appel au use case)
-et non **pilotés** (ils n'implémentent aucun port du domaine). La règle
+`ingestion/` (appender Logback, file bornée, consommateur virtual-thread) et,
+depuis l'incrément 4, `api/` (`ReviewController`) regroupent des adaptateurs
+**pilotants** (ils déclenchent l'appel au use case) et non **pilotés** (ils
+n'implémentent aucun port du domaine). La règle
 `grace.architecture.port-adapter:adapter-lives-in-infrastructure-and-implements-port`
 (warning) les considère en violation dès qu'ils sont hors de `infrastructure/`
 OU qu'ils n'implémentent aucun port — une condition qu'un adaptateur pilotant
@@ -187,13 +190,18 @@ pilotant/piloté que `package-info.kt` documente. Écart assumé, gardé en
   confiance `choice`/`score`/`noul` ne sont pas comparables (jaggedness
   jev-1.13). Seuils par défaut 0.7 partout (`TriageRoutingProperties`,
   `triage.routing.*`), provisoires jusqu'à la calibration de l'incrément 6.
-- `ReviewQueue` (port, `enqueue`/`pending`) + `InMemoryReviewQueue` : retient
+- `ReviewQueue` (port, `submit`/`pending`) + `InMemoryReviewQueue` : retient
   les `ReviewCase` routés `FOR_REVIEW`, avec un test de contrat
   (`ReviewQueueContract`), même schéma que `ClassificationMemory`
-  (incrément 3).
+  (incrément 3). Nommé `submit` et non `enqueue` (revue Grace : `enqueue`
+  nomme le mécanisme de la structure de données, pas l'acte métier —
+  « soumettre un cas à une décision humaine »).
 - `TriageLogEventUseCase` (renommage de `ClassifyLogEventUseCase`) : classifie
-  puis route et enqueue si nécessaire — le nom suit maintenant ce que le use
-  case fait réellement, pas seulement la classification.
+  puis route et soumet à `ReviewQueue` si nécessaire — le nom suit maintenant
+  ce que le use case fait réellement, pas seulement la classification.
+  Renvoie un `TriageOutcome` (`classification` + `decision`), pas la seule
+  `Classification` (revue Grace : sans le `RoutingDecision`, l'appelant ne
+  peut pas savoir laquelle des deux issues du use case a eu lieu).
 - `GET /api/reviews` (`ReviewController`, `api/`) expose les `ReviewCase` en
   attente. Réponse construite sur `LogEvent.redactedMessage`, jamais
   `message` : l'endpoint n'a aucune authentification devant lui (pas de

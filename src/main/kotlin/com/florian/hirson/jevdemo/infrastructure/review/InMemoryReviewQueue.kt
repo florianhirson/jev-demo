@@ -9,7 +9,7 @@ class InMemoryReviewQueue : ReviewQueue {
 
     private val cases = CopyOnWriteArrayList<ReviewCase>()
 
-    override fun enqueue(reviewCase: ReviewCase) {
+    override fun submit(reviewCase: ReviewCase) {
         cases.add(reviewCase)
     }
 

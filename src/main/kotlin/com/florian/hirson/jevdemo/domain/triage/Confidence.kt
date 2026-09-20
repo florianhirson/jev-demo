@@ -1,11 +1,12 @@
 package com.florian.hirson.jevdemo.domain.triage
 
 /**
- * How certain jev is about one answer — a `choice`'s or a `score`'s
- * `confidence` field. Per jev-1.13's documented jaggedness, confidence isn't
- * comparable across answer types (a `noul` carries none at all; see
- * [Actionable.confidence] for how that one is derived instead), so a
- * [RoutingThresholds] is always one [Confidence] per field, never a single
+ * How certain jev is about one answer, normalized to 0.0..1.0 — a `choice`'s
+ * or a `score`'s own `confidence` field, or (see [Actionable.confidence]) the
+ * certainty derived from a `noul`'s distance to 0.5. All three answer types
+ * share this scale, but per jev-1.13's documented jaggedness a value's
+ * calibration doesn't transfer between answer types, so a
+ * [RoutingThresholds] always sets one [Confidence] per field, never a single
  * global number.
  */
 data class Confidence(val value: Double) : Comparable<Confidence> {

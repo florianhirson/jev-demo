@@ -10,7 +10,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Drains [queue] on a fixed pool of virtual threads, driving
- * [classifyLogEvent] for each [com.florian.hirson.jevdemo.domain.triage.LogEvent].
+ * [triageLogEvent] for each [com.florian.hirson.jevdemo.domain.triage.LogEvent].
  * Concurrency is bounded by [consumerCount] rather than one thread per event:
  * virtual threads are cheap, but the point of the queue is to bound how much
  * triage work runs at once, not to remove that bound.
@@ -23,7 +23,7 @@ import java.util.concurrent.atomic.AtomicBoolean
  */
 class TriageLogConsumer(
     private val queue: BoundedLogQueue,
-    private val classifyLogEvent: TriageLogEventUseCase,
+    private val triageLogEvent: TriageLogEventUseCase,
     private val consumerCount: Int,
 ) {
     private val logger = LoggerFactory.getLogger(TriageLogConsumer::class.java)
@@ -54,11 +54,11 @@ class TriageLogConsumer(
                 return
             }
             try {
-                classifyLogEvent.execute(logEvent)
+                triageLogEvent.execute(logEvent)
             } catch (exception: Exception) {
                 // redactedMessage, not message: this log line must not repeat whatever
                 // sensitive data classification was already trying to keep out of jev.
-                logger.error("Failed to classify log event: {}", logEvent.redactedMessage, exception)
+                logger.error("Failed to triage log event: {}", logEvent.redactedMessage, exception)
             }
         }
     }

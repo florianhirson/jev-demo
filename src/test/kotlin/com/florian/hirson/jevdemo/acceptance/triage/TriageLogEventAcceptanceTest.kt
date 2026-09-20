@@ -8,6 +8,7 @@ import com.florian.hirson.jevdemo.domain.triage.Classification
 import com.florian.hirson.jevdemo.domain.triage.Confidence
 import com.florian.hirson.jevdemo.domain.triage.LogEvent
 import com.florian.hirson.jevdemo.domain.triage.ReviewCase
+import com.florian.hirson.jevdemo.domain.triage.RoutingDecision
 import com.florian.hirson.jevdemo.domain.triage.RoutingThresholds
 import com.florian.hirson.jevdemo.domain.triage.Severity
 import com.florian.hirson.jevdemo.infrastructure.review.InMemoryReviewQueue
@@ -46,10 +47,10 @@ class TriageLogEventAcceptanceTest {
         val triageLogEvent = TriageLogEventUseCase(classifier, InMemoryReviewQueue(), thresholds)
 
         // Act — le log est soumis au use case de triage
-        val classification = triageLogEvent.execute(logEvent)
+        val outcome = triageLogEvent.execute(logEvent)
 
         // Assert — la classification obtenue est celle produite par jev
-        assertEquals(expected, classification)
+        assertEquals(expected, outcome.classification)
     }
 
     @Test
@@ -71,9 +72,10 @@ class TriageLogEventAcceptanceTest {
         val triageLogEvent = TriageLogEventUseCase(classifier, reviewQueue, thresholds)
 
         // Act
-        triageLogEvent.execute(logEvent)
+        val outcome = triageLogEvent.execute(logEvent)
 
         // Assert — le cas attend une décision humaine
+        assertEquals(RoutingDecision.FOR_REVIEW, outcome.decision)
         assertEquals(listOf(ReviewCase(logEvent, ambiguous)), reviewQueue.pending())
     }
 
@@ -94,8 +96,9 @@ class TriageLogEventAcceptanceTest {
         val reviewQueue = InMemoryReviewQueue()
         val triageLogEvent = TriageLogEventUseCase(classifier, reviewQueue, thresholds)
 
-        triageLogEvent.execute(logEvent)
+        val outcome = triageLogEvent.execute(logEvent)
 
+        assertEquals(RoutingDecision.AUTOMATIC, outcome.decision)
         assertEquals(emptyList(), reviewQueue.pending())
     }
 }
