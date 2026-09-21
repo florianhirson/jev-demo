@@ -3,8 +3,7 @@
 A demo of streaming ERROR-log triage classified by **jev** (TypeSafe AI's
 "System One model" — early access, [docs](https://docs.typesafe.ai/llms.txt)),
 built behind a hexagonal architecture so jev is just one replaceable adapter
-behind a `LogClassifier` port. Written for a GitHub repo and a LinkedIn
-write-up: proportioned to a demo, not a product.
+behind a `LogClassifier` port.
 
 ## What it does
 
@@ -102,19 +101,4 @@ ingestion/, api/,       driving adapters: they trigger a use case call, they imp
 config/                 composition roots: the only place a port meets its concrete adapter
 ```
 
-See `CLAUDE.md` (not published — internal working notes) for the detailed,
-increment-by-increment design rationale.
 
-## Increments
-
-1. Skeleton, domain, `LogClassifier` port + acceptance test with a fake
-   classifier.
-2. Ingestion: Logback appender → bounded queue → virtual-thread consumers.
-3. Real jev adapter (`@HttpExchange`, sealed DTOs) + PII masking + fingerprint
-   cache.
-4. Confidence-threshold routing policy + in-memory review queue + REST
-   endpoint.
-5. Observability: `TriageMetrics` port + Micrometer/Prometheus adapter,
-   Actuator exposure.
-6. `errors.jsonl` dataset + log simulator + confidence-tier accuracy
-   evaluation + this README + optional Prometheus/Grafana compose stack.
