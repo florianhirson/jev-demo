@@ -3,6 +3,7 @@ package com.florian.hirson.jevdemo.infrastructure.classification.jev
 import com.florian.hirson.jevdemo.domain.triage.LogEvent
 import org.junit.jupiter.api.Tag
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.boot.test.context.SpringBootTest
 import java.time.Instant
 import kotlin.test.Test
@@ -22,7 +23,12 @@ import kotlin.test.assertTrue
 @SpringBootTest
 class JevLogClassifierLiveTest {
 
+    // @Bean(defaultCandidate = false) on JevConfiguration.jevLogClassifier keeps this adapter out of
+    // default-by-type autowiring (it's TriageConfiguration.logClassifier's internal collaborator, not
+    // a second candidate for the LogClassifier port) — so this test, which deliberately injects the
+    // raw adapter itself to exercise the real jev call end to end, needs the explicit qualifier too.
     @Autowired
+    @Qualifier("jevLogClassifier")
     lateinit var jevLogClassifier: JevLogClassifier
 
     @Test

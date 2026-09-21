@@ -17,6 +17,7 @@ import com.florian.hirson.jevdemo.ingestion.BoundedLogQueue
 import com.florian.hirson.jevdemo.ingestion.TriageLogAppender
 import com.florian.hirson.jevdemo.ingestion.TriageLogConsumer
 import io.micrometer.core.instrument.MeterRegistry
+import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -44,8 +45,10 @@ class TriageConfiguration {
     fun classificationMemory(): ClassificationMemory = InMemoryClassificationMemory()
 
     @Bean
-    fun logClassifier(jevLogClassifier: JevLogClassifier, memory: ClassificationMemory): LogClassifier =
-        CachingLogClassifier(jevLogClassifier, memory)
+    fun logClassifier(
+        @Qualifier("jevLogClassifier") jevLogClassifier: JevLogClassifier,
+        memory: ClassificationMemory,
+    ): LogClassifier = CachingLogClassifier(jevLogClassifier, memory)
 
     @Bean
     fun reviewQueue(): ReviewQueue = InMemoryReviewQueue()

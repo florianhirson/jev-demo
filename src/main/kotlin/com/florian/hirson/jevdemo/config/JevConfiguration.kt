@@ -73,7 +73,18 @@ class JevConfiguration {
         return Retry.of("jev", config)
     }
 
-    @Bean
+    // defaultCandidate = false: this bean also satisfies the LogClassifier port type (JevLogClassifier
+    // implements it), but it's an internal collaborator of TriageConfiguration.logClassifier, not the
+    // port's canonical implementation — that's CachingLogClassifier, which wraps this one. Excluding it
+    // from default autowire candidacy keeps exactly one LogClassifier-typed candidate in the main
+    // context, which is what by-type injection points actually depending on the port need to resolve
+    // unambiguously (TriageConfiguration.triageLogEventUseCase, ToolingConfiguration.evaluate
+    // ClassificationAccuracyUseCase) — while leaving the @Primary slot free for test doubles (see
+    // TriageIngestionIntegrationTest, TriageObservabilityIntegrationTest), which is how they substitute
+    // the port today. Any other injection point that wants this exact bean — by its own concrete type,
+    // not the port — needs an explicit @Qualifier("jevLogClassifier"), same as
+    // TriageConfiguration.logClassifier and JevLogClassifierLiveTest both do.
+    @Bean(defaultCandidate = false)
     fun jevLogClassifier(
         client: SystemOneClient,
         properties: JevProperties,
