@@ -2,6 +2,7 @@ package com.florian.hirson.jevdemo.config
 
 import com.florian.hirson.jevdemo.application.triage.usecase.ListPendingReviewsUseCase
 import com.florian.hirson.jevdemo.application.triage.usecase.TriageLogEventUseCase
+import com.florian.hirson.jevdemo.application.triage.usecase.TriageOutcomePresenter
 import com.florian.hirson.jevdemo.domain.triage.ClassificationMemory
 import com.florian.hirson.jevdemo.domain.triage.Confidence
 import com.florian.hirson.jevdemo.domain.triage.LogClassifier
@@ -12,12 +13,15 @@ import com.florian.hirson.jevdemo.infrastructure.cache.InMemoryClassificationMem
 import com.florian.hirson.jevdemo.infrastructure.classification.CachingLogClassifier
 import com.florian.hirson.jevdemo.infrastructure.classification.jev.JevLogClassifier
 import com.florian.hirson.jevdemo.infrastructure.observability.MicrometerTriageMetrics
+import com.florian.hirson.jevdemo.infrastructure.presentation.AnsiConsoleTriageOutcomePresenter
+import com.florian.hirson.jevdemo.infrastructure.presentation.SilentTriageOutcomePresenter
 import com.florian.hirson.jevdemo.infrastructure.review.InMemoryReviewQueue
 import com.florian.hirson.jevdemo.ingestion.BoundedLogQueue
 import com.florian.hirson.jevdemo.ingestion.TriageLogAppender
 import com.florian.hirson.jevdemo.ingestion.TriageLogConsumer
 import io.micrometer.core.instrument.MeterRegistry
 import org.springframework.beans.factory.annotation.Qualifier
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -76,10 +80,16 @@ class TriageConfiguration {
         ListPendingReviewsUseCase(reviewQueue)
 
     @Bean
+    fun triageOutcomePresenter(@Value("\${demo.console.enabled:false}") consoleEnabled: Boolean): TriageOutcomePresenter =
+        if (consoleEnabled) AnsiConsoleTriageOutcomePresenter() else SilentTriageOutcomePresenter
+
+    @Bean
     fun triageLogConsumer(
         queue: BoundedLogQueue,
-        classifyLogEvent: TriageLogEventUseCase,
+        triageLogEvent: TriageLogEventUseCase,
         metrics: TriageMetrics,
         properties: TriageIngestionProperties,
-    ): TriageLogConsumer = TriageLogConsumer(queue, classifyLogEvent, metrics, properties.consumerCount)
+        presenter: TriageOutcomePresenter,
+    ): TriageLogConsumer =
+        TriageLogConsumer(queue, triageLogEvent, metrics, properties.consumerCount, presenter)
 }

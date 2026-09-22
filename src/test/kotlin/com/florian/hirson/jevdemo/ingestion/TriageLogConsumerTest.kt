@@ -4,6 +4,8 @@ import ch.qos.logback.classic.Logger
 import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.core.read.ListAppender
 import com.florian.hirson.jevdemo.application.triage.usecase.TriageLogEventUseCase
+import com.florian.hirson.jevdemo.application.triage.usecase.TriageOutcome
+import com.florian.hirson.jevdemo.application.triage.usecase.TriageOutcomePresenter
 import com.florian.hirson.jevdemo.domain.triage.Actionable
 import com.florian.hirson.jevdemo.domain.triage.Category
 import com.florian.hirson.jevdemo.domain.triage.Classification
@@ -15,6 +17,7 @@ import com.florian.hirson.jevdemo.domain.triage.RoutingDecision
 import com.florian.hirson.jevdemo.domain.triage.RoutingThresholds
 import com.florian.hirson.jevdemo.domain.triage.Severity
 import com.florian.hirson.jevdemo.domain.triage.TriageMetrics
+import com.florian.hirson.jevdemo.infrastructure.presentation.SilentTriageOutcomePresenter
 import com.florian.hirson.jevdemo.infrastructure.review.InMemoryReviewQueue
 import org.slf4j.LoggerFactory
 import java.time.Instant
@@ -76,7 +79,7 @@ class TriageLogConsumerTest {
         val queue = BoundedLogQueue(capacity = 4)
         val latch = CountDownLatch(1)
         val classifier = RecordingLogClassifier(latch)
-        val consumer = TriageLogConsumer(queue, triageLogEventUseCase(classifier), RecordingTriageMetrics(), consumerCount = 1)
+        val consumer = TriageLogConsumer(queue, triageLogEventUseCase(classifier), RecordingTriageMetrics(), consumerCount = 1, presenter = SilentTriageOutcomePresenter)
 
         queue.offer(logEvent("connection refused"))
         consumer.start()
@@ -108,7 +111,7 @@ class TriageLogConsumerTest {
             }
         }
         val metrics = RecordingTriageMetrics()
-        val consumer = TriageLogConsumer(queue, triageLogEventUseCase(classifier), metrics, consumerCount = 1)
+        val consumer = TriageLogConsumer(queue, triageLogEventUseCase(classifier), metrics, consumerCount = 1, presenter = SilentTriageOutcomePresenter)
 
         consumer.start()
         try {
@@ -136,7 +139,7 @@ class TriageLogConsumerTest {
         val classifier = object : LogClassifier {
             override fun classify(logEvent: LogEvent): Classification = throw RuntimeException("jev is down")
         }
-        val consumer = TriageLogConsumer(queue, triageLogEventUseCase(classifier), RecordingTriageMetrics(), consumerCount = 1)
+        val consumer = TriageLogConsumer(queue, triageLogEventUseCase(classifier), RecordingTriageMetrics(), consumerCount = 1, presenter = SilentTriageOutcomePresenter)
 
         consumer.start()
         try {
@@ -166,7 +169,7 @@ class TriageLogConsumerTest {
         val queue = BoundedLogQueue(capacity = 4)
         val latch = CountDownLatch(3)
         val classifier = RecordingLogClassifier(latch)
-        val consumer = TriageLogConsumer(queue, triageLogEventUseCase(classifier), RecordingTriageMetrics(), consumerCount = 2)
+        val consumer = TriageLogConsumer(queue, triageLogEventUseCase(classifier), RecordingTriageMetrics(), consumerCount = 2, presenter = SilentTriageOutcomePresenter)
 
         consumer.start()
         try {
@@ -178,6 +181,123 @@ class TriageLogConsumerTest {
             assertEquals(setOf("first", "second", "third"), classifier.received.map { it.message }.toSet())
         } finally {
             consumer.stop()
+        }
+    }
+
+    private class RecordingPresenter : TriageOutcomePresenter {
+        val presented = CopyOnWriteArrayList<Pair<LogEvent, TriageOutcome>>()
+        val failures = CopyOnWriteArrayList<LogEvent>()
+
+        override fun present(logEvent: LogEvent, outcome: TriageOutcome) {
+            presented.add(logEvent to outcome)
+        }
+
+        override fun presentTriageFailure(logEvent: LogEvent) {
+            failures.add(logEvent)
+        }
+    }
+
+    @Test
+    fun `l-issue du triage et son evenement sont presentes, et un echec l-est aussi`() {
+        val queue = BoundedLogQueue(capacity = 4)
+        val classifier = object : LogClassifier {
+            override fun classify(logEvent: LogEvent): Classification {
+                if (logEvent.message == "boom") throw RuntimeException("jev is down")
+                return Classification(
+                    category = Category.NOISE,
+                    categoryConfidence = Confidence(1.0),
+                    severity = Severity(0.0),
+                    severityConfidence = Confidence(1.0),
+                    actionable = Actionable(0.0),
+                )
+            }
+        }
+        val presenter = RecordingPresenter()
+        val consumer = TriageLogConsumer(
+            queue, triageLogEventUseCase(classifier), RecordingTriageMetrics(), consumerCount = 1, presenter = presenter,
+        )
+
+        consumer.start()
+        try {
+            queue.offer(logEvent("fine"))
+            queue.offer(logEvent("boom"))
+
+            val deadline = System.currentTimeMillis() + 2000
+            while ((presenter.presented.isEmpty() || presenter.failures.isEmpty()) && System.currentTimeMillis() < deadline) {
+                Thread.sleep(10)
+            }
+            assertEquals(listOf("fine"), presenter.presented.map { it.first.message })
+            assertEquals(RoutingDecision.AUTOMATIC, presenter.presented.single().second.decision)
+            assertEquals(listOf("boom"), presenter.failures.map { it.message })
+        } finally {
+            consumer.stop()
+        }
+    }
+
+    @Test
+    fun `une erreur d-affichage n-est pas un echec de triage et ne tue pas le consommateur`() {
+        val queue = BoundedLogQueue(capacity = 4)
+        val latch = CountDownLatch(2)
+        val classifier = RecordingLogClassifier(latch)
+        val metrics = RecordingTriageMetrics()
+        val brokenPresenter = object : TriageOutcomePresenter {
+            override fun present(logEvent: LogEvent, outcome: TriageOutcome) = throw IllegalStateException("terminal closed")
+            override fun presentTriageFailure(logEvent: LogEvent) = Unit
+        }
+        val consumer = TriageLogConsumer(queue, triageLogEventUseCase(classifier), metrics, consumerCount = 1, presenter = brokenPresenter)
+
+        consumer.start()
+        try {
+            queue.offer(logEvent("first"))
+            queue.offer(logEvent("second"))
+
+            assertTrue(latch.await(2, TimeUnit.SECONDS), "le consommateur s'est arrêté après l'erreur d'affichage")
+            assertEquals(0, metrics.triageFailures)
+        } finally {
+            consumer.stop()
+        }
+    }
+
+    @Test
+    fun `une erreur d-affichage d-un echec n-empeche ni le log d-erreur ni la suite du traitement`() {
+        val appender = ListAppender<ILoggingEvent>()
+        appender.start()
+        val logger = LoggerFactory.getLogger(TriageLogConsumer::class.java) as Logger
+        logger.addAppender(appender)
+
+        val queue = BoundedLogQueue(capacity = 4)
+        val latch = CountDownLatch(1)
+        val received = CopyOnWriteArrayList<LogEvent>()
+        val classifier = object : LogClassifier {
+            override fun classify(logEvent: LogEvent): Classification {
+                if (logEvent.message == "boom") throw RuntimeException("jev is down")
+                received.add(logEvent)
+                latch.countDown()
+                return Classification(
+                    category = Category.NOISE,
+                    categoryConfidence = Confidence(1.0),
+                    severity = Severity(0.0),
+                    severityConfidence = Confidence(1.0),
+                    actionable = Actionable(0.0),
+                )
+            }
+        }
+        val brokenPresenter = object : TriageOutcomePresenter {
+            override fun present(logEvent: LogEvent, outcome: TriageOutcome) = Unit
+            override fun presentTriageFailure(logEvent: LogEvent) = throw IllegalStateException("terminal closed")
+        }
+        val consumer = TriageLogConsumer(queue, triageLogEventUseCase(classifier), RecordingTriageMetrics(), consumerCount = 1, presenter = brokenPresenter)
+
+        consumer.start()
+        try {
+            queue.offer(logEvent("boom"))
+            queue.offer(logEvent("still processed"))
+
+            assertTrue(latch.await(2, TimeUnit.SECONDS), "le consommateur s'est arrêté après l'erreur d'affichage d'un échec")
+            assertTrue(appender.list.any { it.formattedMessage.startsWith("Failed to triage log event") })
+        } finally {
+            consumer.stop()
+            logger.detachAppender(appender)
         }
     }
 }

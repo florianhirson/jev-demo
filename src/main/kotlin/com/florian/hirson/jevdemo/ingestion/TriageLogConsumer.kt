@@ -1,6 +1,7 @@
 package com.florian.hirson.jevdemo.ingestion
 
 import com.florian.hirson.jevdemo.application.triage.usecase.TriageLogEventUseCase
+import com.florian.hirson.jevdemo.application.triage.usecase.TriageOutcomePresenter
 import com.florian.hirson.jevdemo.domain.triage.TriageMetrics
 import jakarta.annotation.PostConstruct
 import jakarta.annotation.PreDestroy
@@ -27,6 +28,7 @@ class TriageLogConsumer(
     private val triageLogEvent: TriageLogEventUseCase,
     private val metrics: TriageMetrics,
     private val consumerCount: Int,
+    private val presenter: TriageOutcomePresenter,
 ) {
     private val logger = LoggerFactory.getLogger(TriageLogConsumer::class.java)
     private val running = AtomicBoolean(false)
@@ -55,14 +57,28 @@ class TriageLogConsumer(
                 Thread.currentThread().interrupt()
                 return
             }
-            try {
+            val outcome = try {
                 triageLogEvent.execute(logEvent)
             } catch (exception: Exception) {
                 metrics.recordTriageFailed()
                 // redactedMessage, not message: this log line must not repeat whatever
                 // sensitive data classification was already trying to keep out of jev.
                 logger.error("Failed to triage log event: {}", logEvent.redactedMessage, exception)
+                presentSafely { presenter.presentTriageFailure(logEvent) }
+                null
             }
+            // Outside the triage try: a presentation problem is not a triage failure, but it must
+            // not end this consumer either.
+            if (outcome != null) presentSafely { presenter.present(logEvent, outcome) }
+        }
+    }
+
+    /** A display problem is a recovered anomaly (warn), never a triage failure, and must not end this consumer. */
+    private fun presentSafely(presentation: () -> Unit) {
+        try {
+            presentation()
+        } catch (exception: Exception) {
+            logger.warn("Failed to present triage output", exception)
         }
     }
 }

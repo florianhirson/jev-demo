@@ -53,6 +53,19 @@ logs the JVM it's running in happens to emit. Two ways to give it some:
   Watch `GET /api/reviews` fill up, and `/actuator/prometheus` count
   `triage_routed_total` and `triage_failed_total`.
 
+## Recording a live demo
+
+`demo/run-demo.sh` replays the dataset against the real jev API and prints
+one coloured line per triaged event next to the raw ERROR line
+(`demo.console.enabled=true`): green `AUTOMATIC`, yellow `FOR_REVIEW`, red
+`FAILED`, with the category and the confidence of each field. To record it
+as a GIF/MP4 with [VHS](https://github.com/charmbracelet/vhs):
+
+```bash
+brew install vhs
+vhs demo/demo.tape   # calls the real jev: re-run until the take is good
+```
+
 ## Checking whether confidence actually predicts accuracy
 
 The routing policy (`triage.routing.*`) trusts a classification automatically
